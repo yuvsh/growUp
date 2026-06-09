@@ -35,6 +35,19 @@ const en = {
       'please follow the guidance of your healthcare provider.',
   },
   profile: {
+    title: 'Profile',
+    edit: 'Edit',
+    editAriaLabel: "Edit baby's profile",
+    dobLabel: 'Date of birth',
+    sexLabel: 'Sex',
+    empty: {
+      title: 'Add your baby to begin',
+      cta: 'Add your baby',
+    },
+    error: {
+      title: "We couldn't load your profile",
+      description: 'Please try again.',
+    },
     sex: {
       label: "Baby's sex",
       male: 'Male',
