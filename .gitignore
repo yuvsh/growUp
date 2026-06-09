@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Environment variables — never commit secrets
+.env
+.env.local
+.env.*.local
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Test coverage
+coverage/
+
+# Keep Claude worktrees if present
+!.claude/worktrees

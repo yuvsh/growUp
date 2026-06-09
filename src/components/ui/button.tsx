@@ -10,14 +10,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md' | 'lg'
   loading?: boolean
   fullWidthOnMobile?: boolean
-  children: ReactNode
+  children?: ReactNode
 }
 
 export function Button({
-  variant = 'primary',
-  size = 'md',
+  variant: _variant = 'primary',
+  size: _size = 'md',
   loading = false,
-  fullWidthOnMobile = false,
+  fullWidthOnMobile: _fullWidthOnMobile = false,
   children,
   ...props
 }: ButtonProps): React.JSX.Element {

@@ -4,10 +4,10 @@ import type { HTMLAttributes, ReactNode } from 'react'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'hover' | 'selected'
-  children: ReactNode
+  children?: ReactNode
 }
 
-export function Card({ variant = 'default', children, ...props }: CardProps): React.JSX.Element {
+export function Card({ variant: _variant = 'default', children, ...props }: CardProps): React.JSX.Element {
   // TODO: implement with MASTER.md tokens.
   // base: bg-[--color-surface] rounded-[--radius] shadow-sm p-[--space-4] border border-transparent
   // hover: hover:shadow-md transition-shadow var(--duration-normal)
