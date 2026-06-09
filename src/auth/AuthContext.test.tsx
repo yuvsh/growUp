@@ -6,7 +6,7 @@ import { AuthProvider, useAuth } from './AuthContext.js';
 
 const ANON_USER_ID_KEY = 'growup:anonUserId';
 
-function wrapper({ children }: { children: ReactNode }): JSX.Element {
+function wrapper({ children }: { children: ReactNode }): React.JSX.Element {
   return <AuthProvider>{children}</AuthProvider>;
 }
 

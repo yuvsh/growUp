@@ -44,7 +44,7 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
+export function AuthProvider({ children }: AuthProviderProps): React.JSX.Element {
   const [user] = useState<AnonymousUser>(() => ({
     id: getOrCreateAnonUserId(),
     isAnonymous: true,

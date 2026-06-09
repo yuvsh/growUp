@@ -33,7 +33,7 @@ interface LocaleProviderProps {
   children: ReactNode;
 }
 
-export function LocaleProvider({ children }: LocaleProviderProps): JSX.Element {
+export function LocaleProvider({ children }: LocaleProviderProps): React.JSX.Element {
   return (
     <LocaleContext.Provider value={DEFAULT_LOCALE}>
       {children}
