@@ -25,6 +25,9 @@ const en = {
   },
   onboarding: {
     cta: 'Add your baby',
+    welcomeTitle: 'Welcome to GrowUp',
+    welcomeBody:
+      'Track your baby\'s growth and feeding with calm, reassuring insights — all in one place.',
   },
   disclaimer: {
     body:
