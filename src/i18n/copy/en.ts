@@ -33,6 +33,14 @@ const en = {
       'failure to thrive (FTT) or intrauterine growth restriction (IUGR), ' +
       'please follow the guidance of your healthcare provider.',
   },
+  profile: {
+    sex: {
+      label: "Baby's sex",
+      male: 'Male',
+      female: 'Female',
+      why: 'We use this to choose the correct WHO growth standard.',
+    },
+  },
 } as const;
 
 export default en;
