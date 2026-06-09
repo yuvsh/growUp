@@ -21,6 +21,7 @@ const en = {
     save: 'Save',
     cancel: 'Cancel',
     delete: 'Delete',
+    keep: 'Keep',
   },
   onboarding: {
     cta: 'Add your baby',
@@ -39,6 +40,20 @@ const en = {
       male: 'Male',
       female: 'Female',
       why: 'We use this to choose the correct WHO growth standard.',
+    },
+    childForm: {
+      titleAdd: 'Tell us about your baby',
+      titleEdit: 'Edit baby',
+      namePlaceholder: "Your baby's name",
+      nameLabel: "Baby's name",
+      dobLabel: 'Date of birth',
+      dobError: 'Date of birth cannot be in the future',
+      deleteAction: 'Delete baby',
+      deleteModalTitle: 'Delete baby?',
+      deleteModalBody:
+        'This will permanently remove your baby and all their data. This cannot be undone.',
+      saveMutationError: "Couldn't save — your details are still here",
+      saving: 'Saving…',
     },
   },
 } as const;
