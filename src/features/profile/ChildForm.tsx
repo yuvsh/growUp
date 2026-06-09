@@ -108,36 +108,30 @@ export function ChildForm(): React.JSX.Element {
 
   return (
     <main
-      style={{
-        minHeight: '100dvh',
-        backgroundColor: 'var(--color-background)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        paddingBlock: 'var(--space-6)',
-        paddingInline: 'var(--space-4)',
-      }}
+      className={[
+        'min-h-dvh',
+        'bg-[var(--color-background)]',
+        'flex flex-col items-center justify-start',
+        'py-[var(--space-6)] px-[var(--space-4)]',
+      ].join(' ')}
     >
       <Card
-        style={{
-          width: '100%',
-          maxWidth: '520px',
-          padding: 'var(--space-6)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 'var(--space-5)',
-        }}
+        className={[
+          'w-full max-w-[520px]',
+          'p-[var(--space-6)]',
+          'flex flex-col',
+          'gap-[var(--space-5)]',
+        ].join(' ')}
       >
         {/* ---- Title ---- */}
         <h1
-          style={{
-            fontSize: 'var(--text-h2)',
-            fontFamily: 'var(--font-heading)',
-            color: 'var(--color-foreground)',
-            fontWeight: '700',
-            marginBlock: '0',
-          }}
+          className={[
+            'text-[var(--text-h2)]',
+            'font-[var(--font-heading)]',
+            'text-[var(--color-foreground)]',
+            'font-bold',
+            'my-0',
+          ].join(' ')}
         >
           {isEditMode
             ? t('profile.childForm.titleEdit')
@@ -149,11 +143,7 @@ export function ChildForm(): React.JSX.Element {
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--space-5)',
-          }}
+          className="flex flex-col gap-[var(--space-5)]"
         >
           {/* ---- Name field ---- */}
           <Input
@@ -190,13 +180,7 @@ export function ChildForm(): React.JSX.Element {
           />
 
           {/* ---- Action buttons ---- */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 'var(--space-3)',
-            }}
-          >
+          <div className="flex flex-col gap-[var(--space-3)]">
             <Button
               type="submit"
               variant="primary"
@@ -232,10 +216,7 @@ export function ChildForm(): React.JSX.Element {
               onClick={(): void => {
                 setDeleteModalOpen(true);
               }}
-              style={{
-                color: 'var(--color-destructive)',
-                alignSelf: 'center',
-              }}
+              className="text-[var(--color-destructive)] self-center"
             >
               {t('profile.childForm.deleteAction')}
             </Button>
@@ -262,13 +243,7 @@ export function ChildForm(): React.JSX.Element {
         }}
         title={t('profile.childForm.deleteModalTitle')}
         footer={
-          <div
-            style={{
-              display: 'flex',
-              gap: 'var(--space-3)',
-              justifyContent: 'flex-end',
-            }}
-          >
+          <div className="flex gap-[var(--space-3)] justify-end">
             <Button
               type="button"
               variant="secondary"
@@ -293,11 +268,11 @@ export function ChildForm(): React.JSX.Element {
         }
       >
         <p
-          style={{
-            fontSize: 'var(--text-body)',
-            color: 'var(--color-foreground)',
-            fontFamily: 'var(--font-body)',
-          }}
+          className={[
+            'text-[var(--text-body)]',
+            'text-[var(--color-foreground)]',
+            'font-[var(--font-body)]',
+          ].join(' ')}
         >
           {t('profile.childForm.deleteModalBody')}
         </p>
