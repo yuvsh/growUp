@@ -1,0 +1,103 @@
+/* GrowUp global stylesheet
+ * Auto-derived from design-system/MASTER.md (ui-ux-pro-max design system query).
+ * Do not invent values here — every token traces back to MASTER.md.
+ * Stack: React + Vite + Tailwind v4. RTL-ready (logical properties only in components).
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&family=Varela+Round&display=swap');
+
+@import 'tailwindcss';
+
+:root {
+  /* ---- Colors (from MASTER.md palette) ---- */
+  --color-primary: #0891b2;
+  --color-primary-hover: #0e7490;
+  --color-on-primary: #ffffff;
+  --color-secondary: #22d3ee;
+  --color-accent: #059669;
+  --color-accent-strong: #047857;
+  --color-background: #ecfeff;
+  --color-surface: #ffffff;
+  --color-foreground: #164e63;
+  --color-text-muted: #4b7a8a;
+  --color-muted: #e8f1f6;
+  --color-border: #a5f3fc;
+  --color-caution: #b45309;          /* gentle "below 3rd / watch" — calm, not alarming */
+  --color-caution-surface: #fef3e2;
+  --color-success: #059669;
+  --color-destructive: #dc2626;      /* reserved for destructive confirms only */
+  --color-ring: #0891b2;
+
+  /* ---- Typography ---- */
+  --font-heading: 'Varela Round', system-ui, sans-serif;
+  --font-body: 'Nunito Sans', system-ui, sans-serif;
+
+  --text-display: 2.5rem;
+  --text-h1: 2rem;
+  --text-h2: 1.5rem;
+  --text-h3: 1.25rem;
+  --text-body-lg: 1.125rem;
+  --text-body: 1rem;
+  --text-sm: 0.875rem;
+  --text-caption: 0.75rem;
+
+  /* ---- Spacing (4pt grid) ---- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* ---- Radius (organic, generous) ---- */
+  --radius-sm: 12px;
+  --radius: 18px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+
+  /* ---- Shadows (soft, natural) ---- */
+  --shadow-sm: 0 2px 8px rgba(8, 72, 99, 0.06);
+  --shadow-md: 0 8px 24px rgba(8, 72, 99, 0.08);
+  --shadow-lg: 0 16px 48px rgba(8, 72, 99, 0.12);
+
+  /* ---- Motion ---- */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-heading);
+  color: var(--color-foreground);
+}
+
+/* Disable decorative motion for users who ask for it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
