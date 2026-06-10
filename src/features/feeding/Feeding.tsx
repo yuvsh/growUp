@@ -23,6 +23,7 @@ import { Input } from '../../components/ui/input'
 import { EmptyState } from '../../components/ui/empty-state'
 import { FeedsPerDayStepper } from './FeedsPerDayStepper'
 import { HighCaloriePanel } from './HighCaloriePanel'
+import { IntakeVsNeed } from './IntakeVsNeed'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -298,6 +299,19 @@ export function Feeding(): React.JSX.Element {
             enabled={useHighCalorie}
             kcalValue={storedKcalPerMl}
             onChange={handleHighCalorieChange}
+          />
+
+          {/* ------------------------------------------------------------ */}
+          {/* Section 5: Average intake vs. need gauge (M3-6 / FEED-4)      */}
+          {/* ------------------------------------------------------------ */}
+          <IntakeVsNeed
+            weightKg={weightKg}
+            intakeMlPerDay={config?.avgIntakeMlPerDay ?? null}
+            onIntakeChange={(value) => {
+              saveConfig({ avgIntakeMlPerDay: value ?? undefined }).catch(() => {
+                // Error tracked by hook; no additional handling needed here.
+              })
+            }}
           />
         </>
       )}

@@ -5,6 +5,7 @@ import {
   toKcalPerMl,
   calorieAdjustedRange,
   standardFeeding,
+  classifyIntake,
 } from './index'
 import {
   STANDARD_KCAL_PER_ML,
@@ -131,6 +132,34 @@ describe('calorieAdjustedRange', () => {
   it('throws when kcalPerMl <= 0', () => {
     expect(() => calorieAdjustedRange(5, 0)).toThrow('kcalPerMl must be greater than 0')
     expect(() => calorieAdjustedRange(5, -1)).toThrow('kcalPerMl must be greater than 0')
+  })
+})
+
+describe('classifyIntake', () => {
+  const need = { minMl: 600, maxMl: 1000 }
+
+  it('returns "below" when intake is strictly below minMl', () => {
+    expect(classifyIntake(599, need)).toBe('below')
+  })
+
+  it('returns "within" when intake equals minMl (lower bound inclusive)', () => {
+    expect(classifyIntake(600, need)).toBe('within')
+  })
+
+  it('returns "within" when intake is between min and max', () => {
+    expect(classifyIntake(800, need)).toBe('within')
+  })
+
+  it('returns "within" when intake equals maxMl (upper bound inclusive)', () => {
+    expect(classifyIntake(1000, need)).toBe('within')
+  })
+
+  it('returns "above" when intake is strictly above maxMl', () => {
+    expect(classifyIntake(1001, need)).toBe('above')
+  })
+
+  it('returns "below" for intake = 0 against any positive range', () => {
+    expect(classifyIntake(0, need)).toBe('below')
   })
 })
 

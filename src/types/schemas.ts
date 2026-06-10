@@ -81,6 +81,10 @@ export const feedingConfigSchema = z
     kcalPerMl: z.number().positive('kcal per ml must be greater than zero'),
     mlPerKgMin: z.number().positive('ml/kg min must be greater than zero'),
     mlPerKgMax: z.number().positive('ml/kg max must be greater than zero'),
+    avgIntakeMlPerDay: z
+      .number()
+      .positive('Average intake must be greater than zero')
+      .optional(),
     createdAt: isoTimestamp,
     updatedAt: isoTimestamp,
   })

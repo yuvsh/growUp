@@ -132,6 +132,23 @@ export function calorieAdjustedRange(
 }
 
 /**
+ * Classify an observed daily intake against the recommended need band.
+ *
+ * @param intakeMlPerDay - Observed average daily intake in ml/day.
+ * @param need           - The recommended daily volume range { minMl, maxMl }.
+ * @returns 'below' when intake < need.minMl, 'above' when intake > need.maxMl,
+ *          'within' when intake is within the band (inclusive of bounds).
+ */
+export function classifyIntake(
+  intakeMlPerDay: number,
+  need: { minMl: number; maxMl: number },
+): 'below' | 'within' | 'above' {
+  if (intakeMlPerDay < need.minMl) return 'below'
+  if (intakeMlPerDay > need.maxMl) return 'above'
+  return 'within'
+}
+
+/**
  * Convenience wrapper that returns a complete standard feeding calculation.
  *
  * @param weightKg    - Baby's weight in kilograms.

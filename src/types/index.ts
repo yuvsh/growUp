@@ -45,6 +45,8 @@ export interface FeedingConfig {
   mlPerKgMin: number;
   /** ml per kg per day — maximum end of range (default 200); must be ≥ mlPerKgMin */
   mlPerKgMax: number;
+  /** Average daily intake in ml/day over the last 7 days — optional, user-entered */
+  avgIntakeMlPerDay?: number;
   /** UTC ISO timestamp */
   createdAt: string;
   /** UTC ISO timestamp */
