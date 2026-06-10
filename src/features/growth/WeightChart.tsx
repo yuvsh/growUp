@@ -29,12 +29,12 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { curveSeries } from '../../lib/who/curves';
-import { weightToZResult } from '../../lib/who';
+import { weightToZResult, lmsForAge, percentileWeight } from '../../lib/who';
 import { ageFromDob, formatAge } from '../../lib/growth/age';
 import { computeChartWindow } from '../../lib/growth/chartWindow';
 import { t } from '../../i18n/t';
 import type { WeightEntry, Sex } from '../../types';
+import { PERCENTILE_Z } from './types';
 import type { PercentileLabel } from './types';
 import type { ChartRange } from '../../lib/growth/chartWindow';
 
@@ -44,6 +44,10 @@ import type { ChartRange } from '../../lib/growth/chartWindow';
 
 /** Days-per-month divisor for converting ageDays → months on the chart x-axis. */
 const DAYS_PER_MONTH = 30.4375;
+
+/** WHO data spans 0–730 days (0–24 months); curves are sampled every 14 days. */
+const MAX_AGE_DAYS = 730;
+const CURVE_STEP_DAYS = 14;
 
 /** Muted stroke colors for the 5 WHO percentile reference curves. */
 const CURVE_STROKES: Record<PercentileLabel, string> = {
@@ -105,6 +109,8 @@ interface CurveDataPoint {
   p85Kg: number;
   /** WHO 97th percentile weight in kg. */
   p97Kg: number;
+  /** Baby's measured weight in kg — present ONLY on rows at a real measurement age. */
+  babyKg?: number;
 }
 
 /** A single point in the baby's exact measurement series. */
@@ -175,27 +181,40 @@ export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): Re
     range,
   );
 
-  // ---- Build WHO percentile curves (grid-sampled, full range) ------------
-  // Curves stay grid-sampled — they are smooth reference lines and Recharts
-  // clips them to the domain automatically thanks to allowDataOverflow.
-  const curves = curveSeries(sex);
+  // ---- Build ONE unified dataset shared by curves AND the baby line -------
+  // Rows = the curve grid (every 14 days, 0–730) UNION the baby's EXACT ages.
+  // Each row carries the 5 WHO percentile weights at that exact age (via the LMS
+  // method) plus babyKg only on rows that are a real measurement. Sharing one
+  // dataset means the tooltip at a baby point shows the real age + baby weight +
+  // the percentile weights together — and no phantom baby points are invented.
+  const babyKgByDay = new Map<number, number>();
+  entries.forEach((entry) => {
+    const days = ageFromDob(dateOfBirth, entry.dateMeasured).days;
+    babyKgByDay.set(days, entry.weightGrams / 1000);
+  });
 
-  const p50Curve = curves.find((c) => c.percentileLabel === '50th');
-  const p3Curve = curves.find((c) => c.percentileLabel === '3rd');
-  const p15Curve = curves.find((c) => c.percentileLabel === '15th');
-  const p85Curve = curves.find((c) => c.percentileLabel === '85th');
-  const p97Curve = curves.find((c) => c.percentileLabel === '97th');
+  const gridDays: number[] = [];
+  for (let d = 0; d <= MAX_AGE_DAYS; d += CURVE_STEP_DAYS) gridDays.push(d);
+  if (gridDays[gridDays.length - 1] !== MAX_AGE_DAYS) gridDays.push(MAX_AGE_DAYS);
 
-  const ageGrid: number[] = p50Curve?.points.map((pt) => pt.ageDays) ?? [];
+  const allDays = Array.from(new Set<number>([...gridDays, ...babyKgByDay.keys()])).sort(
+    (a, b) => a - b,
+  );
 
-  const chartData: CurveDataPoint[] = ageGrid.map((ageDays, idx) => ({
-    ageMonths: round(ageDays / DAYS_PER_MONTH, 2),
-    p3Kg: round((p3Curve?.points[idx]?.weightGrams ?? 0) / 1000, 4),
-    p15Kg: round((p15Curve?.points[idx]?.weightGrams ?? 0) / 1000, 4),
-    p50Kg: round((p50Curve?.points[idx]?.weightGrams ?? 0) / 1000, 4),
-    p85Kg: round((p85Curve?.points[idx]?.weightGrams ?? 0) / 1000, 4),
-    p97Kg: round((p97Curve?.points[idx]?.weightGrams ?? 0) / 1000, 4),
-  }));
+  const chartData: CurveDataPoint[] = allDays.map((days) => {
+    const lms = lmsForAge(sex, days);
+    const babyKg = babyKgByDay.get(days);
+    const row: CurveDataPoint = {
+      ageMonths: round(days / DAYS_PER_MONTH, 2),
+      p3Kg: round(percentileWeight(PERCENTILE_Z.p3, lms) / 1000, 4),
+      p15Kg: round(percentileWeight(PERCENTILE_Z.p15, lms) / 1000, 4),
+      p50Kg: round(percentileWeight(PERCENTILE_Z.p50, lms) / 1000, 4),
+      p85Kg: round(percentileWeight(PERCENTILE_Z.p85, lms) / 1000, 4),
+      p97Kg: round(percentileWeight(PERCENTILE_Z.p97, lms) / 1000, 4),
+    };
+    if (babyKg !== undefined) row.babyKg = round(babyKg, 3);
+    return row;
+  });
 
   // ---- Build fallback table rows -----------------------------------------
   const sortedEntries = [...entries].sort(
@@ -363,11 +382,13 @@ export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): Re
               );
             })}
 
-            {/* Baby's exact measured weight overlay — uses its own data prop so
-                ages are the precise computed values, never snapped to the curve grid. */}
+            {/* Baby's measured weight overlay — reads babyKg from the shared dataset
+                (present only at real measurement ages, so dots mark real records and
+                the tooltip aligns with the percentile curves). connectNulls bridges
+                the gaps between measurements. */}
             {hasEntries && (
               <Line
-                data={exactBabyPoints}
+                data={chartData}
                 type="monotone"
                 dataKey="babyKg"
                 name={babyLabel}
@@ -375,7 +396,7 @@ export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): Re
                 strokeWidth={BABY_STROKE_WIDTH}
                 dot={{ fill: 'var(--color-primary)', r: 4, strokeWidth: 0 }}
                 activeDot={{ r: 6, fill: 'var(--color-primary-hover)', strokeWidth: 0 }}
-                connectNulls={false}
+                connectNulls={true}
                 isAnimationActive={false}
               />
             )}
