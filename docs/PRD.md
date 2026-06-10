@@ -284,6 +284,12 @@ As a parent, I want a clear, always-visible medical disclaimer, so that I unders
 - [ ] States the app is for tracking/information only, is not medical advice, and that FTT/IUGR require professional care
 - [ ] Written in warm, plain language
 
+**APP-4** · Should
+As a parent, I want the app to remember where I was when I switch between tabs, so that I don't lose my place or have to re-pick the chart view every time.
+- [ ] Scroll position is restored per tab when returning to it
+- [ ] The Growth chart's view (Weight / Z-score) and time range persist across tab switches and survive a reload
+- [ ] Persisted UI state never affects the baby's data; it's view-only preferences
+
 ---
 
 ### V1.1 Stories (post-launch, deferred from MVP)

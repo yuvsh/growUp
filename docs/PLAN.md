@@ -383,6 +383,19 @@ graph LR
 
 ---
 
+### APP-4 · Persist UI view-state + scroll across tabs · S — PRD: APP-4
+*Added post-MVP. Epic: App Shell. The React equivalent of an Android ViewModel: hold ephemeral view state ABOVE the routed screens so it survives tab unmount/remount.*
+**Owns:** `src/ui-state/UiStateContext.tsx`, `src/ui-state/UiStateContext.test.tsx`, `src/app/App.tsx`, `src/app/PrimaryLayout.tsx`, `src/features/growth/Growth.tsx`, `src/features/growth/WeightChart.tsx` (+ its test), `src/features/growth/Growth.test.tsx`
+**Reads:** `react-router-dom` (`ScrollRestoration`), `src/lib/growth/chartWindow.ts` (`ChartRange`)
+**Context:** Two pieces. (1) **Scroll:** render `<ScrollRestoration getKey={(loc) => loc.pathname} />` in `PrimaryLayout` (it stays mounted across the 3 tab children), so each tab's scroll is restored on return. (2) **View state:** a `UiStateProvider` mounted in `App.tsx` OUTSIDE the `RouterProvider` (so it never unmounts) holding `growthChartView: 'weight' | 'zscore'` and `growthChartRange: ChartRange`, hydrated from + persisted to `localStorage` (key `growup:ui`, validated against the allowed values on read). `Growth` consumes `useUiState()` for the chart view, and lifts `WeightChart`'s `range` out of local state into the context (passes `range` + `onRangeChange` down as props). View-only — never touches child/weight data.
+**Done when:**
+- [ ] Switching tabs and returning restores scroll position per tab
+- [ ] Growth chart view + range persist across tab switches AND a full reload (localStorage)
+- [ ] `UiStateContext` unit-tested (hydrate/persist/validate); WeightChart range is prop-driven; tests updated
+- [ ] `npm run type-check`, `npm run test`, `npm run lint`, `npm run build` all pass
+
+---
+
 ## Milestone 4 — Polish & Launch
 *Goal: every state handled, accessibility verified, README written, production deploy.*
 
