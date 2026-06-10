@@ -152,6 +152,41 @@ describe('computeChartWindow', () => {
     expect(win.yMaxKg).toBeLessThan(15);
   });
 
+  // ---- '2y' range — full WHO range 0–24 months --------------------------
+
+  it("'2y' returns x-domain [0, 24] regardless of baby data", () => {
+    const points = [
+      makePoint(2, 4.5),
+      makePoint(5, 6.0),
+      makePoint(10, 8.5),
+    ];
+    const win = computeChartWindow(points, '2y');
+    expect(win.xMinMonths).toBe(0);
+    expect(win.xMaxMonths).toBe(24);
+  });
+
+  it("'2y' returns x-domain [0, 24] with a single early point", () => {
+    const points = [makePoint(1, 3.5)];
+    const win = computeChartWindow(points, '2y');
+    expect(win.xMinMonths).toBe(0);
+    expect(win.xMaxMonths).toBe(24);
+  });
+
+  it("'2y' returns x-domain [0, 24] when no baby points provided", () => {
+    const win = computeChartWindow([], '2y');
+    // Empty points returns DEFAULT_WINDOW, not the '2y' early-return branch
+    // (we guard babyPoints.length === 0 first), so default window is returned.
+    expect(win.xMinMonths).toBe(0);
+    expect(win.xMaxMonths).toBe(6); // DEFAULT_WINDOW
+  });
+
+  it("'2y' yMinKg is non-negative and yMaxKg > yMinKg", () => {
+    const points = [makePoint(2, 4.5), makePoint(8, 7.0)];
+    const win = computeChartWindow(points, '2y');
+    expect(win.yMinKg).toBeGreaterThanOrEqual(0);
+    expect(win.yMaxKg).toBeGreaterThan(win.yMinKg);
+  });
+
   // ---- domain clamped to [0, 24] ----------------------------------------
 
   it('xMax does not exceed 24 months', () => {

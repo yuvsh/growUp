@@ -10,8 +10,8 @@
 // Types
 // ---------------------------------------------------------------------------
 
-/** One of the four selectable time-range options for the weight chart. */
-export type ChartRange = '1mo' | '3mo' | '6mo' | 'all';
+/** One of the five selectable time-range options for the weight chart. */
+export type ChartRange = '1mo' | '3mo' | '6mo' | 'all' | '2y';
 
 /** Axis domain for the weight chart — all values in months or kg. */
 export interface ChartWindow {
@@ -81,6 +81,29 @@ export function computeChartWindow(
   const ages = babyPoints.map((p) => p.ageMonths);
   const latest = Math.max(...ages);
   const first = Math.min(...ages);
+
+  // '2y' = full WHO range 0–24 months; Y domain is computed baby-fit below
+  // (the chart component overrides Y to 'auto' for the full fan view).
+  if (range === '2y') {
+    const babyWeights = babyPoints.map((p) => p.weightKg);
+    const rawYMin = Math.min(...babyWeights);
+    const rawYMax = Math.max(...babyWeights);
+    const padY = Math.max(Y_PAD_MIN, Y_PAD_FRACTION * (rawYMax - rawYMin));
+    let yMin = Math.max(0, rawYMin - padY);
+    let yMax = rawYMax + padY;
+    const span = yMax - yMin;
+    if (span < MIN_SPAN_KG) {
+      const mid = (yMax + yMin) / 2;
+      yMin = Math.max(0, mid - MIN_SPAN_KG / 2);
+      yMax = mid + MIN_SPAN_KG / 2;
+    }
+    return {
+      xMinMonths: 0,
+      xMaxMonths: 24,
+      yMinKg: roundOne(yMin),
+      yMaxKg: roundOne(yMax),
+    };
+  }
 
   let xMax = Math.min(24, latest + X_PAD);
   let xMin: number;

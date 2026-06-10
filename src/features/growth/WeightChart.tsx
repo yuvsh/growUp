@@ -5,7 +5,7 @@
  * reference lines and overlays the baby's measured weight points on top at
  * EXACT computed ages (no snapping to the 14-day curve grid).
  *
- * A `1mo · 3mo · 6mo · All` segmented toggle above the chart lets the parent
+ * A `1mo · 3mo · 6mo · All · 2yr` segmented toggle above the chart lets the parent
  * focus on a recent window. The auto-fit Y domain keeps small changes legible.
  *
  * An accessible text table is rendered below the chart so the chart is never
@@ -31,7 +31,7 @@ import {
 } from 'recharts';
 import { curveSeries } from '../../lib/who/curves';
 import { weightToZResult } from '../../lib/who';
-import { ageFromDob } from '../../lib/growth/age';
+import { ageFromDob, formatAge } from '../../lib/growth/age';
 import { computeChartWindow } from '../../lib/growth/chartWindow';
 import { t } from '../../i18n/t';
 import type { WeightEntry, Sex } from '../../types';
@@ -70,7 +70,7 @@ const BABY_STROKE_WIDTH = 2.5;
 const CURVE_STROKE_WIDTH = 1.5;
 
 /** Keys in the `growth.chartRange` copy namespace used by the toggle. */
-type ChartRangeLabelKey = 'm1' | 'm3' | 'm6' | 'all';
+type ChartRangeLabelKey = 'm1' | 'm3' | 'm6' | 'all' | 'full';
 
 /** The ordered list of range options shown in the toggle. */
 const CHART_RANGES: { value: ChartRange; labelKey: ChartRangeLabelKey }[] = [
@@ -78,6 +78,7 @@ const CHART_RANGES: { value: ChartRange; labelKey: ChartRangeLabelKey }[] = [
   { value: '3mo', labelKey: 'm3' },
   { value: '6mo', labelKey: 'm6' },
   { value: 'all', labelKey: 'all' },
+  { value: '2y', labelKey: 'full' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -117,7 +118,9 @@ interface BabyDataPoint {
 /** One row in the accessible fallback table. */
 interface FallbackRow {
   dateMeasured: string;
+  ageLabel: string;
   weightKg: string;
+  zScore: string;
   percentile: string;
 }
 
@@ -200,11 +203,13 @@ export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): Re
   );
 
   const fallbackRows: FallbackRow[] = sortedEntries.map((entry) => {
-    const ageDays = ageFromDob(dateOfBirth, entry.dateMeasured).days;
-    const { percentile } = weightToZResult(entry.weightGrams, sex, ageDays);
+    const ageBreakdown = ageFromDob(dateOfBirth, entry.dateMeasured);
+    const { z, percentile } = weightToZResult(entry.weightGrams, sex, ageBreakdown.days);
     return {
       dateMeasured: entry.dateMeasured,
+      ageLabel: formatAge(ageBreakdown),
       weightKg: formatKg(entry.weightGrams),
+      zScore: z.toFixed(2),
       percentile: formatPercentile(percentile),
     };
   });
@@ -272,9 +277,9 @@ export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): Re
             <XAxis
               dataKey="ageMonths"
               type="number"
-              domain={[win.xMinMonths, win.xMaxMonths]}
-              allowDataOverflow
-              tickCount={6}
+              domain={range === '2y' ? [0, 24] : [win.xMinMonths, win.xMaxMonths]}
+              allowDataOverflow={range !== '2y'}
+              tickCount={range === '2y' ? 9 : 6}
               label={{
                 value: ageAxisLabel,
                 position: 'insideBottom',
@@ -288,8 +293,8 @@ export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): Re
             />
 
             <YAxis
-              domain={[win.yMinKg, win.yMaxKg]}
-              allowDataOverflow
+              domain={range === '2y' ? ['auto', 'auto'] : [win.yMinKg, win.yMaxKg]}
+              allowDataOverflow={range !== '2y'}
               label={{
                 value: weightAxisLabel,
                 angle: -90,
@@ -402,21 +407,33 @@ export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): Re
               <tr className="border-b border-[var(--color-border)]">
                 <th
                   scope="col"
-                  className="text-start py-[var(--space-2)] pe-[var(--space-4)] text-[var(--color-text-muted)] font-medium"
+                  className="text-start py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-text-muted)] font-medium"
                 >
-                  {t('growth.weightForm.dateLabel')}
+                  {t('growth.zChart.colDate')}
                 </th>
                 <th
                   scope="col"
-                  className="text-start py-[var(--space-2)] pe-[var(--space-4)] text-[var(--color-text-muted)] font-medium"
+                  className="text-start py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-text-muted)] font-medium"
                 >
-                  {t('growth.chart.weightAxis')}
+                  {t('growth.zChart.colAge')}
+                </th>
+                <th
+                  scope="col"
+                  className="text-start py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-text-muted)] font-medium"
+                >
+                  {t('growth.zChart.colWeight')}
+                </th>
+                <th
+                  scope="col"
+                  className="text-start py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-text-muted)] font-medium"
+                >
+                  {t('growth.zChart.colZScore')}
                 </th>
                 <th
                   scope="col"
                   className="text-start py-[var(--space-2)] text-[var(--color-text-muted)] font-medium"
                 >
-                  {t('growth.percentile')}
+                  {t('growth.zChart.colPercentile')}
                 </th>
               </tr>
             </thead>
@@ -426,11 +443,17 @@ export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): Re
                   key={row.dateMeasured}
                   className="border-b border-[var(--color-border)] last:border-0"
                 >
-                  <td className="py-[var(--space-2)] pe-[var(--space-4)] text-[var(--color-foreground)]">
+                  <td className="py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-foreground)]">
                     {row.dateMeasured}
                   </td>
-                  <td className="py-[var(--space-2)] pe-[var(--space-4)] text-[var(--color-foreground)]">
+                  <td className="py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-foreground)]">
+                    {row.ageLabel}
+                  </td>
+                  <td className="py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-foreground)]">
                     {row.weightKg} kg
+                  </td>
+                  <td className="py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-foreground)]">
+                    {row.zScore}
                   </td>
                   <td className="py-[var(--space-2)] text-[var(--color-foreground)]">
                     {row.percentile}
