@@ -247,6 +247,13 @@ As a parent using a special formula, I want to enter its calorie density, so tha
 - [ ] Both the calorie target and the adjusted volume range are shown
 - [ ] A more concentrated formula correctly produces a lower volume range
 
+**FEED-4** · Should
+As a parent, I want to enter my baby's average daily intake (ml/day over the last 7 days) and see it on a scale against how much they need, so that I can tell at a glance whether they're eating enough.
+- [ ] A single "average daily intake (last 7 days)" value can be entered (ml/day) and persists per child
+- [ ] A gauge shows the recommended need band (120–200 ml/kg/day, from the current weight) and the intake as a marker line on the same ml/day scale
+- [ ] A plain-language readout states the intake, the recommended range, and whether intake is within / below / above it (below uses calm caution styling, never red; status not by color alone)
+- [ ] Shown only when a valid weight is present
+
 ---
 
 ### Epic: App Shell & Trust (cross-cutting)

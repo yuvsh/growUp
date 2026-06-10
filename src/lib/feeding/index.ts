@@ -7,6 +7,7 @@
 
 import {
   ML_PER_KG_MIN,
+  ML_PER_KG_TARGET,
   ML_PER_KG_MAX,
   DEFAULT_FEEDS_PER_DAY,
   STANDARD_KCAL_PER_ML,
@@ -129,6 +130,57 @@ export function calorieAdjustedRange(
     adjustedDaily,
     adjustedPerFeed,
   }
+}
+
+/**
+ * Recommended daily intake need, with a min (120 ml/kg), target (150 ml/kg),
+ * and max (200 ml/kg).  When a high-calorie formula density is provided the
+ * volumes are scaled down proportionally so that the same calorie target is met
+ * with a smaller volume.
+ */
+export interface IntakeNeed {
+  minMl: number
+  targetMl: number
+  maxMl: number
+}
+
+/**
+ * Compute the calorie-matched recommended intake need for a given weight.
+ *
+ * @param weightKg  - Baby's weight in kilograms (must be > 0).
+ * @param kcalPerMl - Formula calorie density in kcal/ml.  Pass the special-
+ *                    formula density when high-calorie mode is ON; omit or
+ *                    pass undefined for standard formula (factor = 1).
+ * @returns IntakeNeed with minMl (120 ml/kg), targetMl (150 ml/kg), and
+ *          maxMl (200 ml/kg) — each scaled by STANDARD_KCAL_PER_ML / kcalPerMl
+ *          when a concentrated formula is in use.
+ */
+export function intakeNeed(weightKg: number, kcalPerMl?: number): IntakeNeed {
+  const factor = kcalPerMl !== undefined && kcalPerMl > 0
+    ? STANDARD_KCAL_PER_ML / kcalPerMl
+    : 1
+  return {
+    minMl: weightKg * ML_PER_KG_MIN * factor,
+    targetMl: weightKg * ML_PER_KG_TARGET * factor,
+    maxMl: weightKg * ML_PER_KG_MAX * factor,
+  }
+}
+
+/**
+ * Classify an observed daily intake against the recommended need band.
+ *
+ * @param intakeMlPerDay - Observed average daily intake in ml/day.
+ * @param need           - The recommended daily volume range { minMl, maxMl }.
+ * @returns 'below' when intake < need.minMl, 'above' when intake > need.maxMl,
+ *          'within' when intake is within the band (inclusive of bounds).
+ */
+export function classifyIntake(
+  intakeMlPerDay: number,
+  need: { minMl: number; maxMl: number },
+): 'below' | 'within' | 'above' {
+  if (intakeMlPerDay < need.minMl) return 'below'
+  if (intakeMlPerDay > need.maxMl) return 'above'
+  return 'within'
 }
 
 /**

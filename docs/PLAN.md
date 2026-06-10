@@ -356,6 +356,20 @@ graph LR
 
 ---
 
+### M3-6 · Average intake vs. need gauge · S-M — PRD: FEED-4
+*Added post-MVP. Epic: Feeding Calculator. Decisions: single current value (not tracked over time); flat need band from the weight already on the Feeding screen.*
+**Owns:** `src/features/feeding/IntakeVsNeed.tsx`, `src/features/feeding/IntakeVsNeed.test.tsx`, `src/features/feeding/Feeding.tsx`, `src/types/index.ts`, `src/types/schemas.ts`, `src/i18n/copy/en.ts`
+**Reads:** `src/lib/hooks/useFeeding.ts`, `src/lib/feeding/index.ts` (`dailyVolumeRange`), `src/lib/constants/feeding.ts`, `design-system/MASTER.md`, `docs/ui-blueprints.md` (Feeding — intake vs need)
+**Context:** Add an optional `avgIntakeMlPerDay?: number` to `FeedingConfig` (+ zod schema + type), persisted via `useFeeding.saveConfig`. On the Feeding screen, below the existing range/per-feed/high-cal cards, add: (1) a numeric input "Average daily intake — last 7 days" (ml/day) that saves on change; (2) a lightweight **custom token-styled horizontal gauge** (no new chart lib) on a ml/day scale (0 → ~max×1.15) with the need band `weightKg×120…weightKg×200` shaded and the intake as a vertical marker line; (3) a plain-language readout: intake, recommended range, and within/below/above (below = caution amber never red; within = success; above = neutral; icon + words, not color alone). Reuse the weight already on the Feeding screen; show the whole block only when a valid weight is present.
+**Done when:**
+- [ ] `FeedingConfig.avgIntakeMlPerDay` added (type + schema) and persisted via `saveConfig`
+- [ ] Need-band math (`weight×120/200`) and within/below/above classification unit-tested at boundaries
+- [ ] Gauge + readout render with a weight + intake; block hidden when no weight
+- [ ] Intake input persists per child; all copy via `t()`; tokens + logical CSS; a11y (labelled input, color-not-alone, ≥44px)
+- [ ] `npm run type-check`, `npm run test`, `npm run lint`, `npm run build` all pass
+
+---
+
 ## Milestone 4 — Polish & Launch
 *Goal: every state handled, accessibility verified, README written, production deploy.*
 

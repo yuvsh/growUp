@@ -196,6 +196,17 @@ const en = {
       kcalError: "Enter your formula's calorie content.",
     },
     rangeNote: 'Based on 120–200 ml per kg per day.',
+    intake: {
+      label: 'Average daily intake — last 7 days',
+      unit: 'ml/day',
+      prompt: "Enter your baby's average daily intake to compare it with their needs.",
+      recommended: 'recommended {min}–{max} ml/day',
+      value: '≈ {value} ml/day',
+      within: 'within the recommended range',
+      below: 'below the recommended range',
+      above: 'above the recommended range',
+      gaugeTitle: 'Intake vs. need',
+    },
   },
 } as const;
 

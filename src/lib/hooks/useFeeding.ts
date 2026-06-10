@@ -21,7 +21,12 @@ import {
 type FeedingConfigPatch = Partial<
   Pick<
     FeedingConfig,
-    'feedsPerDay' | 'useHighCalorie' | 'kcalPerMl' | 'mlPerKgMin' | 'mlPerKgMax'
+    | 'feedsPerDay'
+    | 'useHighCalorie'
+    | 'kcalPerMl'
+    | 'mlPerKgMin'
+    | 'mlPerKgMax'
+    | 'avgIntakeMlPerDay'
   >
 >;
 
@@ -145,6 +150,13 @@ export function useFeeding(childId: string | null): UseFeedingResult {
       const base: FeedingConfig =
         config ?? buildDefaultConfig(childId, user.id);
 
+      // avgIntakeMlPerDay: use the patch value if explicitly provided (including
+      // undefined, which clears the field); otherwise fall back to the stored value.
+      const avgIntakeMlPerDay: number | undefined =
+        'avgIntakeMlPerDay' in patch
+          ? patch.avgIntakeMlPerDay
+          : base.avgIntakeMlPerDay;
+
       const input: CreateFeedingConfigInput = {
         childId,
         ownerId: user.id,
@@ -153,6 +165,7 @@ export function useFeeding(childId: string | null): UseFeedingResult {
         kcalPerMl: patch.kcalPerMl ?? base.kcalPerMl,
         mlPerKgMin: patch.mlPerKgMin ?? base.mlPerKgMin,
         mlPerKgMax: patch.mlPerKgMax ?? base.mlPerKgMax,
+        avgIntakeMlPerDay,
       };
 
       try {
