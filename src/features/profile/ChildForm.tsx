@@ -139,7 +139,7 @@ export function ChildForm(): React.JSX.Element {
         </h1>
 
         {/* ---- Form ---- */}
-        {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
+        { }
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate
@@ -259,7 +259,7 @@ export function ChildForm(): React.JSX.Element {
               variant="destructive"
               loading={isDeleting}
               disabled={isDeleting}
-              /* eslint-disable-next-line @typescript-eslint/no-misused-promises */
+               
               onClick={handleDeleteConfirm}
             >
               {t('common.delete')}

@@ -42,13 +42,6 @@ function makeEntry(overrides: Partial<WeightEntry> & { dateMeasured: string; wei
 const BELOW_ENTRY = makeEntry({ dateMeasured: '2025-07-01', weightGrams: 2000 });
 const ABOVE_ENTRY = makeEntry({ dateMeasured: '2025-07-01', weightGrams: 9000 });
 
-// An earlier entry for trend detection
-const EARLIER_BELOW_ENTRY = makeEntry({
-  id: 'entry-0',
-  dateMeasured: '2025-06-01',
-  weightGrams: 1900,
-});
-
 // ---------------------------------------------------------------------------
 // 1. Below-3rd: alert renders with key accessibility + data content
 // ---------------------------------------------------------------------------

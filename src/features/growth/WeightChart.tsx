@@ -257,11 +257,11 @@ export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): Re
                 fontSize: '0.875rem',
                 color: 'var(--color-foreground)',
               }}
-              formatter={(value: number, name: string) => [
-                `${value.toFixed(3)} kg`,
-                name === 'babyKg' ? babyLabel : name,
+              formatter={(value, name) => [
+                `${Number(value).toFixed(3)} kg`,
+                name === 'babyKg' ? babyLabel : String(name),
               ]}
-              labelFormatter={(label: number) => `${label} months`}
+              labelFormatter={(label) => `${String(label)} months`}
             />
 
             <Legend

@@ -43,7 +43,9 @@ function getTodayIso(): string {
   return new Date().toISOString().split('T')[0] as string
 }
 
-function buildSchema(dateOfBirth: string): z.ZodType<WeightFormFields> {
+// Return type is inferred so the concrete ZodObject is preserved for zodResolver
+// (annotating it as the abstract z.ZodType breaks the resolver's overload match).
+function buildSchema(dateOfBirth: string) {
   return z.object({
     weightKg: z
       .string()
