@@ -209,6 +209,14 @@ On save, recompute percentile/z and update chart/history. Edit mode prefills + o
 **Responsive:** Mobile stacked cards; Desktop two-column (inputs / results).
 **Animation:** result numbers cross-fade 150ms on change (motion-safe).
 
+### Feeding — Average intake vs. need (FEED-4)
+**Component:** `IntakeVsNeed` (a card below the per-feed / high-calorie cards; only when a valid weight is present).
+**Input:** "Average daily intake — last 7 days" (ml/day, numeric, labelled); persists to `FeedingConfig.avgIntakeMlPerDay` via `useFeeding.saveConfig`.
+**Gauge:** a lightweight **custom token-styled** horizontal bar (NOT a new chart library) on a ml/day scale from 0 to ~`max×1.15`. The **need band** (`weightKg×120 … weightKg×200`) is a shaded region (calm accent/success tint); the **intake** is a vertical **marker line** positioned at its value with its number labelled. Readable at 375px.
+**Readout:** plain language — "≈ X ml/day · recommended Y–Z ml/day · within / below / above range." within = `--color-success`, below = `--color-caution` (amber, **never red**), above = neutral/`--color-text-muted`; each paired with an **icon + words** (not color alone).
+**States:** no weight → whole block hidden (handled by the Feeding screen). No intake entered yet → gauge shows just the need band + a gentle prompt to enter intake.
+**A11y:** labelled numeric input; the readout is the gauge's accessible text equivalent (chart not sole source); status not color-alone; tokens + logical CSS; ≥44px targets; result announced via `aria-live="polite"`.
+
 ---
 
 ## Shared — BottomTabs & MedicalDisclaimer
