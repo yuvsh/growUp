@@ -270,6 +270,21 @@ graph LR
 
 ---
 
+### M2-12 · Add Z-score trajectory chart · M — PRD: WHO-2, WHO-3, WHO-7
+*Added post-MVP. Epic: WHO Weight Tracking.*
+**Owns:** `src/features/growth/ZScoreChart.tsx`, `src/features/growth/ZScoreChart.test.tsx`, `src/lib/growth/measurements.ts`, `src/lib/growth/measurements.test.ts`, `src/features/growth/Growth.tsx`, `src/i18n/copy/en.ts`
+**Reads:** `src/features/growth/WeightChart.tsx`, `src/lib/who/index.ts`, `src/lib/growth/age.ts`, `docs/ui-blueprints.md` (Growth — Z-score trajectory view), `design-system/MASTER.md`
+**Context:** Let a parent toggle the Growth chart between **Weight** and **Z-score**. The Z-score view plots each measurement exactly once at its exact age (NO snapping — `WeightChart` snaps baby points to the 14-day curve grid, so do NOT reuse its mapping). Introduce a shared pure helper `deriveMeasurements(entries, sex, dateOfBirth)` returning per-entry `{ ageDays, ageLabel, weightGrams, z, percentile, dateMeasured }` (used by `ZScoreChart` for both points and fallback; refactoring `WeightChart`/`WeightRow`/`BelowThirdAlert` onto it is an optional later follow-up). Reference lines at z = 0/−2/−3 (calm tokens, never red). Y-domain `[min(dataMin,−3)−0.5, max(dataMax,0)+0.5]`.
+**Done when:**
+- [ ] `deriveMeasurements` unit-tested (exact per-entry z/percentile; `z≈0` for a known WHO median `M` weight; two close entries stay two points) — N/N passing
+- [ ] Growth shows a `Weight | Z-score` segmented control only when entries exist; default Weight; Weight view unchanged
+- [ ] Z-score view: 1 entry → one dot; 2+ → connected line; labelled 0/−2/−3 lines; fallback table with date/age/weight/z(2dp)/percentile
+- [ ] all new copy via `t()` in `en.ts`
+- [ ] `npm run type-check`, `npm run test`, `npm run lint`, `npm run build` all pass
+- [ ] `superpowers:verification-before-completion` gate passed
+
+---
+
 ## Milestone 3 — Feeding Calculator
 *Goal: a parent enters weight → daily ml range + per-feed amount; high-calorie mode delivers a calorie-matched (lower) volume.*
 

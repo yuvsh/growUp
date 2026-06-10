@@ -137,6 +137,24 @@ const en = {
       deleteConfirmTitle: 'Delete this weight?',
       deleteConfirmBody: 'This entry will be removed from the chart and history.',
     },
+    chartToggle: {
+      label: 'Chart view',
+      weight: 'Weight',
+      zscore: 'Z-score',
+    },
+    zChart: {
+      title: 'Z-score for age',
+      yAxis: 'Z-score',
+      refMedian: 'Median (0)',
+      refLow: '−2',
+      refVeryLow: '−3',
+      fallbackHeading: 'Z-score measurements',
+      colDate: 'Date',
+      colAge: 'Age',
+      colWeight: 'Weight (kg)',
+      colZScore: 'Z-score',
+      colPercentile: 'Percentile',
+    },
   },
   feeding: {
     title: 'Feeding',
@@ -160,7 +178,6 @@ const en = {
       toggle: 'High-calorie / special formula',
       kcalLabel: 'Formula calories',
       unitMl: 'kcal/ml',
-      unitOz: 'kcal/oz',
       calorieTarget: 'Calorie target',
       adjustedRange: 'Adjusted daily amount',
       explainer:

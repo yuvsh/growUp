@@ -6,7 +6,7 @@
 // Data: repository.weights.create/update/delete; Zod validation; weight stored as INTEGER GRAMS.
 // States: blank (add) / prefilled (edit); Save spinner; errors below fields
 //         ("Please enter a weight"; "Date must be between birth and 24 months"); save fail → Toast.
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -151,6 +151,17 @@ export function WeightForm({
       dateMeasured: defaultDate,
     },
   })
+
+  // Re-populate form fields whenever the modal opens or the entry changes.
+  // react-hook-form captures defaultValues once at mount, so the modal reuse
+  // pattern requires an explicit reset on each open.
+  useEffect(() => {
+    if (!open) return
+    reset({
+      weightKg: entry !== undefined ? String(entry.weightGrams / 1000) : '',
+      dateMeasured: entry !== undefined ? entry.dateMeasured : getTodayIso(),
+    })
+  }, [open, entry, reset])
 
   function handleClose(): void {
     setSaveError(null)

@@ -3,7 +3,6 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi } from 'vitest'
 import { HighCaloriePanel } from './HighCaloriePanel'
-import type { KcalUnit } from './types'
 
 // ---------------------------------------------------------------------------
 // Default props helpers
@@ -14,7 +13,6 @@ interface PanelProps {
   feedsPerDay?: number
   enabled?: boolean
   kcalValue?: number
-  unit?: KcalUnit
   onChange?: ReturnType<typeof vi.fn>
 }
 
@@ -23,7 +21,6 @@ function renderPanel({
   feedsPerDay = 8,
   enabled = false,
   kcalValue = 0,
-  unit = 'kcal/ml',
   onChange = vi.fn(),
 }: PanelProps = {}): { onChange: ReturnType<typeof vi.fn> } {
   render(
@@ -32,7 +29,6 @@ function renderPanel({
       feedsPerDay={feedsPerDay}
       enabled={enabled}
       kcalValue={kcalValue}
-      unit={unit}
       onChange={onChange}
     />,
   )
@@ -184,52 +180,48 @@ describe('HighCaloriePanel — invalid/empty kcal', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Unit selector
+// Unit hint (static text, no selector buttons)
 // ---------------------------------------------------------------------------
 
-describe('HighCaloriePanel — unit selector', () => {
-  it('shows kcal/ml and kcal/oz unit buttons when enabled', () => {
+describe('HighCaloriePanel — unit hint', () => {
+  it('shows static kcal/ml unit hint when enabled (no unit toggle buttons)', () => {
     renderPanel({ enabled: true, kcalValue: 1.0 })
-    expect(screen.getByRole('button', { name: 'kcal/ml' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'kcal/oz' })).toBeInTheDocument()
+    // Static hint text appears once next to the input.
+    expect(screen.getByText('kcal/ml')).toBeInTheDocument()
+    // No toggle buttons for unit selection.
+    expect(screen.queryByRole('button', { name: 'kcal/oz' })).not.toBeInTheDocument()
   })
+})
 
-  it('kcal/ml button is pressed when unit is kcal/ml', () => {
-    renderPanel({ enabled: true, kcalValue: 1.0, unit: 'kcal/ml' })
-    expect(screen.getByRole('button', { name: 'kcal/ml' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
-    expect(screen.getByRole('button', { name: 'kcal/oz' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    )
-  })
+// ---------------------------------------------------------------------------
+// Per-feed adjusted volume
+// ---------------------------------------------------------------------------
 
-  it('kcal/oz button is pressed when unit is kcal/oz', () => {
-    renderPanel({ enabled: true, kcalValue: 20, unit: 'kcal/oz' })
-    expect(screen.getByRole('button', { name: 'kcal/oz' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
-  })
+describe('HighCaloriePanel — adjusted per-feed volume', () => {
+  /**
+   * At 1.0 kcal/ml and 5 kg with 8 feeds/day:
+   *   adjusted daily: 402–670 ml
+   *   adjusted per-feed: 402/8 ≈ 50 ml, 670/8 ≈ 84 ml
+   */
+  it('shows adjusted per-feed range when enabled with valid kcal (1.0 kcal/ml, 5 kg, 8 feeds)', () => {
+    renderPanel({ enabled: true, kcalValue: 1.0, weightKg: 5, feedsPerDay: 8 })
 
-  it('clicking kcal/oz calls onChange({ unit: "kcal/oz" })', async () => {
-    const user = userEvent.setup()
-    const { onChange } = renderPanel({ enabled: true, kcalValue: 1.0, unit: 'kcal/ml' })
+    expect(screen.getByText('Per feed')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'kcal/oz' }))
-
-    expect(onChange).toHaveBeenCalledWith({ unit: 'kcal/oz' })
-  })
-
-  it('clicking kcal/ml calls onChange({ unit: "kcal/ml" })', async () => {
-    const user = userEvent.setup()
-    const { onChange } = renderPanel({ enabled: true, kcalValue: 20, unit: 'kcal/oz' })
-
-    await user.click(screen.getByRole('button', { name: 'kcal/ml' }))
-
-    expect(onChange).toHaveBeenCalledWith({ unit: 'kcal/ml' })
+    // The per-feed values should be in the 50–84 range.
+    // We locate the sibling span that contains the numeric range.
+    const perFeedLabel = screen.getByText('Per feed')
+    const perFeedRow = perFeedLabel.closest('div')
+    expect(perFeedRow).not.toBeNull()
+    const valueSpan = perFeedRow?.querySelector('span:nth-child(2)')
+    const valueText = valueSpan?.textContent ?? ''
+    const numbers = valueText.match(/\d+/g)?.map(Number) ?? []
+    expect(numbers.length).toBeGreaterThanOrEqual(2)
+    // Values should be below the unadjusted 75–125 ml (standard at 8 feeds)
+    expect(numbers[0]).toBeLessThan(75)
+    expect(numbers[1]).toBeLessThan(125)
+    expect(numbers[0]).toBeGreaterThan(30)
+    expect(numbers[1]).toBeGreaterThan(50)
   })
 })
 
