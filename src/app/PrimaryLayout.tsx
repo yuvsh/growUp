@@ -1,11 +1,12 @@
 // PrimaryLayout — wraps Growth, Feeding, Profile with BottomTabs + MedicalDisclaimer footer.
 // Guards child-required routes: shows LoadingSpinner during async repository check,
 // then either renders the screen or redirects to /onboarding.
-import { Outlet, ScrollRestoration } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { BottomTabs } from '../components/ui/bottom-tabs.js';
 import { MedicalDisclaimer } from '../components/ui/medical-disclaimer.js';
 import { LoadingSpinner } from '../components/ui/loading-spinner.js';
 import { useRequireChild } from './useRequireChild.js';
+import { useScrollMemory } from './useScrollMemory.js';
 
 const layoutStyle: React.CSSProperties = {
   display: 'flex',
@@ -27,6 +28,8 @@ const loadingContainerStyle: React.CSSProperties = {
 
 export function PrimaryLayout(): React.JSX.Element {
   const guardState = useRequireChild();
+  // Remember/restore scroll position per tab (async-content aware).
+  useScrollMemory();
 
   if (guardState === 'loading' || guardState === 'redirecting') {
     return (
@@ -38,12 +41,6 @@ export function PrimaryLayout(): React.JSX.Element {
 
   return (
     <div style={layoutStyle}>
-      {/*
-        ScrollRestoration uses the pathname as the key, so each tab remembers
-        its own scroll position independently. Placed inside the layout (not
-        the root) so it is always mounted while the primary screens are active.
-      */}
-      <ScrollRestoration getKey={(location) => location.pathname} />
       <div style={contentStyle}>
         <Outlet />
       </div>
