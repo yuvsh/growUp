@@ -91,6 +91,27 @@ h1, h2, h3, h4 {
   color: var(--color-foreground);
 }
 
+/* Keyframes referenced by components (gated behind motion-safe: utilities). */
+@keyframes blobDrift {
+  from {
+    transform: translate(-50%, 0) scale(1);
+  }
+  to {
+    transform: translate(-50%, 10px) scale(1.05);
+  }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Disable decorative motion for users who ask for it. */
 @media (prefers-reduced-motion: reduce) {
   *,
