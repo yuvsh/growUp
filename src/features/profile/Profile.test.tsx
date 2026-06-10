@@ -81,8 +81,8 @@ describe('Profile — loading state', () => {
     // Skeleton renders aria-hidden divs — confirm no child name or empty state is shown
     expect(screen.queryByText(t('profile.empty.title'))).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    // The skeleton root divs are aria-hidden, so we check by container structure
-    const { container } = render(<Profile />);
+    // The skeleton root divs are aria-hidden; confirm the edit button is absent
+    render(<Profile />);
     // Should not render the child name or edit button
     expect(screen.queryByRole('button', { name: t('profile.editAriaLabel') })).not.toBeInTheDocument();
   });
