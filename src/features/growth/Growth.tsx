@@ -28,6 +28,7 @@ import { EmptyState } from '../../components/ui/empty-state';
 import { ErrorState } from '../../components/ui/error-state';
 import { BelowThirdAlert } from './BelowThirdAlert';
 import { WeightChart } from './WeightChart';
+import { ZScoreChart } from './ZScoreChart';
 import { ProjectionCard } from './ProjectionCard';
 import { InsightsList } from './InsightsList';
 import { WeightHistoryList } from './WeightHistoryList';
@@ -44,6 +45,9 @@ interface ModalState {
   /** Undefined = add mode; defined = edit mode */
   entry?: WeightEntry;
 }
+
+/** Which chart view is currently selected on the Growth screen. */
+type ChartView = 'weight' | 'zscore';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -74,6 +78,7 @@ export function Growth(): React.JSX.Element {
   const { weights, loading, error, deleteWeight, reload } = useWeights(childId);
 
   const [modal, setModal] = useState<ModalState>({ open: false });
+  const [chartView, setChartView] = useState<ChartView>('weight');
 
   // ---- Guard: no child (route guard normally handles this, but be defensive) --
   if (child === null) {
@@ -251,8 +256,60 @@ export function Growth(): React.JSX.Element {
           {/* Section 2: BelowThirdAlert — conditional caution amber */}
           <BelowThirdAlert entries={weights} sex={sex} dateOfBirth={dateOfBirth} />
 
-          {/* Section 3: WeightChart — Recharts + accessible table fallback */}
-          <WeightChart entries={weights} sex={sex} dateOfBirth={dateOfBirth} />
+          {/* ---------------------------------------------------------------- */}
+          {/* Chart view toggle — Weight | Z-score segmented control          */}
+          {/* Only shown when entries exist (guaranteed here by hasEntries).  */}
+          {/* Radio-group semantics per ui-blueprints.md a11y requirements.  */}
+          {/* ---------------------------------------------------------------- */}
+          <div
+            role="radiogroup"
+            aria-label={t('growth.chartToggle.label')}
+            className="flex gap-[var(--space-1)] rounded-[var(--radius-pill)] bg-[var(--color-muted)] p-[var(--space-1)] self-start"
+          >
+            <button
+              role="radio"
+              aria-checked={chartView === 'weight'}
+              onClick={() => { setChartView('weight'); }}
+              className={[
+                'min-h-[44px] min-w-[44px]',
+                'px-[var(--space-4)] py-[var(--space-2)]',
+                'rounded-[var(--radius-pill)]',
+                'text-[length:var(--text-sm)] font-medium',
+                'transition-colors duration-[var(--duration-fast)]',
+                'focus-visible:outline-[2px] focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-2',
+                chartView === 'weight'
+                  ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-sm)]'
+                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-foreground)]',
+              ].join(' ')}
+            >
+              {t('growth.chartToggle.weight')}
+            </button>
+            <button
+              role="radio"
+              aria-checked={chartView === 'zscore'}
+              onClick={() => { setChartView('zscore'); }}
+              className={[
+                'min-h-[44px] min-w-[44px]',
+                'px-[var(--space-4)] py-[var(--space-2)]',
+                'rounded-[var(--radius-pill)]',
+                'text-[length:var(--text-sm)] font-medium',
+                'transition-colors duration-[var(--duration-fast)]',
+                'focus-visible:outline-[2px] focus-visible:outline-[var(--color-ring)] focus-visible:outline-offset-2',
+                chartView === 'zscore'
+                  ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-sm)]'
+                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-foreground)]',
+              ].join(' ')}
+            >
+              {t('growth.chartToggle.zscore')}
+            </button>
+          </div>
+
+          {/* Section 3: Chart — Weight or Z-score depending on toggle state */}
+          {chartView === 'weight' ? (
+            <WeightChart entries={weights} sex={sex} dateOfBirth={dateOfBirth} />
+          ) : (
+            <ZScoreChart entries={weights} sex={sex} dateOfBirth={dateOfBirth} />
+          )}
 
           {/* Section 4: ProjectionCard — velocity + 4-week forecast */}
           <ProjectionCard entries={weights} sex={sex} dateOfBirth={dateOfBirth} />
