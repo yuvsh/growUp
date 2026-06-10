@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeAll, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { WeightChart } from './WeightChart';
 import type { WeightEntry, Sex } from '../../types';
@@ -158,5 +158,73 @@ describe('WeightChart', () => {
     // Column headers: Date, Weight (kg), Percentile
     expect(screen.getByText('Weight (kg)')).toBeInTheDocument();
     expect(screen.getByText('Percentile')).toBeInTheDocument();
+  });
+
+  // ---- Range toggle -------------------------------------------------------
+
+  describe('time-range toggle', () => {
+    it('renders 4 range options with radio semantics', () => {
+      renderChart();
+      // The radiogroup container should be present.
+      const radioGroup = screen.getByRole('radiogroup', { name: /time range/i });
+      expect(radioGroup).toBeInTheDocument();
+
+      // All 4 options must be present.
+      const radios = screen.getAllByRole('radio');
+      expect(radios).toHaveLength(4);
+    });
+
+    it('renders the labels: 1 mo, 3 mo, 6 mo, All', () => {
+      renderChart();
+      expect(screen.getByRole('radio', { name: '1 mo' })).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: '3 mo' })).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: '6 mo' })).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: 'All' })).toBeInTheDocument();
+    });
+
+    it('defaults to 3mo selected (aria-checked=true)', () => {
+      renderChart();
+      const m3Button = screen.getByRole('radio', { name: '3 mo' });
+      expect(m3Button).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('all non-default options have aria-checked=false initially', () => {
+      renderChart();
+      const m1 = screen.getByRole('radio', { name: '1 mo' });
+      const m6 = screen.getByRole('radio', { name: '6 mo' });
+      const all = screen.getByRole('radio', { name: 'All' });
+      expect(m1).toHaveAttribute('aria-checked', 'false');
+      expect(m6).toHaveAttribute('aria-checked', 'false');
+      expect(all).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('clicking "1 mo" sets it to aria-checked=true and deselects 3mo', () => {
+      renderChart();
+      const m1 = screen.getByRole('radio', { name: '1 mo' });
+      const m3 = screen.getByRole('radio', { name: '3 mo' });
+
+      fireEvent.click(m1);
+
+      expect(m1).toHaveAttribute('aria-checked', 'true');
+      expect(m3).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('clicking "All" sets it to aria-checked=true', () => {
+      renderChart();
+      const allButton = screen.getByRole('radio', { name: 'All' });
+      fireEvent.click(allButton);
+      expect(allButton).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('only one option is aria-checked=true at a time after clicking', () => {
+      renderChart();
+      const m6 = screen.getByRole('radio', { name: '6 mo' });
+      fireEvent.click(m6);
+
+      const radios = screen.getAllByRole('radio');
+      const checkedRadios = radios.filter((r) => r.getAttribute('aria-checked') === 'true');
+      expect(checkedRadios).toHaveLength(1);
+      expect(checkedRadios[0]).toBe(m6);
+    });
   });
 });

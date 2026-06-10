@@ -2,16 +2,23 @@
  * WeightChart — Recharts-based WHO percentile chart with accessible fallback.
  *
  * Renders the 5 WHO percentile curves (3rd/15th/50th/85th/97th) as background
- * reference lines and overlays the baby's measured weight points on top.
- * Age is expressed in months (ageDays / 30.4375) for readability; weight in kg.
+ * reference lines and overlays the baby's measured weight points on top at
+ * EXACT computed ages (no snapping to the 14-day curve grid).
+ *
+ * A `1mo · 3mo · 6mo · All` segmented toggle above the chart lets the parent
+ * focus on a recent window. The auto-fit Y domain keeps small changes legible.
  *
  * An accessible text table is rendered below the chart so the chart is never
  * the sole source of the data (MASTER.md Priority-1 a11y constraint).
  *
  * Colors use CSS custom properties from src/index.css — never raw hex.
  * No inline styles for layout; all layout via Tailwind classes.
+ * Inline style objects are only used for Recharts label/tick/tooltip props
+ * that accept a React.CSSProperties object — these cannot be replaced by
+ * Tailwind class strings.
  */
 
+import { useState } from 'react';
 import {
   LineChart,
   Line,
@@ -25,9 +32,11 @@ import {
 import { curveSeries } from '../../lib/who/curves';
 import { weightToZResult } from '../../lib/who';
 import { ageFromDob } from '../../lib/growth/age';
+import { computeChartWindow } from '../../lib/growth/chartWindow';
 import { t } from '../../i18n/t';
 import type { WeightEntry, Sex } from '../../types';
 import type { PercentileLabel } from './types';
+import type { ChartRange } from '../../lib/growth/chartWindow';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -60,6 +69,17 @@ const BABY_STROKE_WIDTH = 2.5;
 /** Stroke width for WHO percentile reference lines. */
 const CURVE_STROKE_WIDTH = 1.5;
 
+/** Keys in the `growth.chartRange` copy namespace used by the toggle. */
+type ChartRangeLabelKey = 'm1' | 'm3' | 'm6' | 'all';
+
+/** The ordered list of range options shown in the toggle. */
+const CHART_RANGES: { value: ChartRange; labelKey: ChartRangeLabelKey }[] = [
+  { value: '1mo', labelKey: 'm1' },
+  { value: '3mo', labelKey: 'm3' },
+  { value: '6mo', labelKey: 'm6' },
+  { value: 'all', labelKey: 'all' },
+];
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -70,12 +90,10 @@ interface WeightChartProps {
   dateOfBirth: string;
 }
 
-/** A single point in the unified Recharts dataset (one ageDays column + multi-series values). */
-interface ChartDataPoint {
+/** A single point in the unified Recharts dataset for the percentile curves. */
+interface CurveDataPoint {
   /** Age in months (rounded to 2 dp). */
   ageMonths: number;
-  /** Baby's measured weight in kg, undefined for curve-only rows. */
-  babyKg?: number;
   /** WHO 3rd percentile weight in kg. */
   p3Kg: number;
   /** WHO 15th percentile weight in kg. */
@@ -86,6 +104,14 @@ interface ChartDataPoint {
   p85Kg: number;
   /** WHO 97th percentile weight in kg. */
   p97Kg: number;
+}
+
+/** A single point in the baby's exact measurement series. */
+interface BabyDataPoint {
+  /** Exact age in months (ageDays / 30.4375), NOT snapped to the grid. */
+  ageMonths: number;
+  /** Baby's measured weight in kg. */
+  babyKg: number;
 }
 
 /** One row in the accessible fallback table. */
@@ -120,66 +146,55 @@ function formatPercentile(p: number): string {
 // ---------------------------------------------------------------------------
 
 export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): React.JSX.Element {
-  // Build the 5 WHO percentile curves from pure lib.
-  const curves = curveSeries(sex);
+  // ---- State: selected time range ----------------------------------------
+  const [range, setRange] = useState<ChartRange>('3mo');
 
-  // Derive the chart title and axis labels from i18n.
+  // ---- Derive i18n strings -----------------------------------------------
   const chartTitle = t('growth.chart.title');
   const ageAxisLabel = t('growth.chart.ageAxis');
   const weightAxisLabel = t('growth.chart.weightAxis');
   const babyLabel = t('growth.chart.babyLabel');
   const fallbackHeading = t('growth.chart.fallbackHeading');
+  const rangeLegendLabel = t('growth.chartRange.label');
 
-  // Build a map from ageDays → curve weights for fast lookup.
-  // We use the 50th percentile curve as the x-axis grid (all curves share the same age grid).
+  // ---- Build exact baby points (NO snapping) -----------------------------
+  // Each entry is mapped to its precise ageMonths value (ageDays / 30.4375).
+  // This is used for both the baby <Line> and the chart window computation,
+  // so small changes between close measurements remain distinct.
+  const exactBabyPoints: BabyDataPoint[] = entries.map((entry) => ({
+    ageMonths: ageFromDob(dateOfBirth, entry.dateMeasured).days / DAYS_PER_MONTH,
+    babyKg: entry.weightGrams / 1000,
+  }));
+
+  // ---- Compute chart window from baby's data + selected range ------------
+  const win = computeChartWindow(
+    exactBabyPoints.map((p) => ({ ageMonths: p.ageMonths, weightKg: p.babyKg })),
+    range,
+  );
+
+  // ---- Build WHO percentile curves (grid-sampled, full range) ------------
+  // Curves stay grid-sampled — they are smooth reference lines and Recharts
+  // clips them to the domain automatically thanks to allowDataOverflow.
+  const curves = curveSeries(sex);
+
   const p50Curve = curves.find((c) => c.percentileLabel === '50th');
   const p3Curve = curves.find((c) => c.percentileLabel === '3rd');
   const p15Curve = curves.find((c) => c.percentileLabel === '15th');
   const p85Curve = curves.find((c) => c.percentileLabel === '85th');
   const p97Curve = curves.find((c) => c.percentileLabel === '97th');
 
-  // All curves share the same age grid by construction (curveSeries builds them together).
   const ageGrid: number[] = p50Curve?.points.map((pt) => pt.ageDays) ?? [];
 
-  // Build the Recharts data array from the age grid + baby's entries.
-  const curveDataByAgeDays = new Map<number, Omit<ChartDataPoint, 'ageMonths' | 'babyKg'>>();
-  ageGrid.forEach((ageDays, idx) => {
-    curveDataByAgeDays.set(ageDays, {
-      p3Kg: round((p3Curve?.points[idx]?.weightGrams ?? 0) / 1000, 4),
-      p15Kg: round((p15Curve?.points[idx]?.weightGrams ?? 0) / 1000, 4),
-      p50Kg: round((p50Curve?.points[idx]?.weightGrams ?? 0) / 1000, 4),
-      p85Kg: round((p85Curve?.points[idx]?.weightGrams ?? 0) / 1000, 4),
-      p97Kg: round((p97Curve?.points[idx]?.weightGrams ?? 0) / 1000, 4),
-    });
-  });
+  const chartData: CurveDataPoint[] = ageGrid.map((ageDays, idx) => ({
+    ageMonths: round(ageDays / DAYS_PER_MONTH, 2),
+    p3Kg: round((p3Curve?.points[idx]?.weightGrams ?? 0) / 1000, 4),
+    p15Kg: round((p15Curve?.points[idx]?.weightGrams ?? 0) / 1000, 4),
+    p50Kg: round((p50Curve?.points[idx]?.weightGrams ?? 0) / 1000, 4),
+    p85Kg: round((p85Curve?.points[idx]?.weightGrams ?? 0) / 1000, 4),
+    p97Kg: round((p97Curve?.points[idx]?.weightGrams ?? 0) / 1000, 4),
+  }));
 
-  // Build baby entry points mapped to the nearest age-grid days.
-  const babyByAgeDays = new Map<number, number>();
-  entries.forEach((entry) => {
-    const ageDays = ageFromDob(dateOfBirth, entry.dateMeasured).days;
-    // Snap to the nearest age-grid point for clean chart alignment.
-    const nearest = ageGrid.reduce((prev, curr) =>
-      Math.abs(curr - ageDays) < Math.abs(prev - ageDays) ? curr : prev,
-      ageGrid[0] ?? 0,
-    );
-    // If multiple entries snap to the same grid point use the latest one.
-    babyByAgeDays.set(nearest, entry.weightGrams);
-  });
-
-  // Combine into the final chart dataset.
-  const chartData: ChartDataPoint[] = ageGrid.map((ageDays) => {
-    const curvePoint = curveDataByAgeDays.get(ageDays) ?? {
-      p3Kg: 0, p15Kg: 0, p50Kg: 0, p85Kg: 0, p97Kg: 0,
-    };
-    const babyGrams = babyByAgeDays.get(ageDays);
-    return {
-      ageMonths: round(ageDays / DAYS_PER_MONTH, 1),
-      ...(babyGrams !== undefined ? { babyKg: round(babyGrams / 1000, 3) } : {}),
-      ...curvePoint,
-    };
-  });
-
-  // Build fallback table rows (latest N entries with their computed percentile).
+  // ---- Build fallback table rows -----------------------------------------
   const sortedEntries = [...entries].sort(
     (a, b) => new Date(b.dateMeasured).getTime() - new Date(a.dateMeasured).getTime(),
   );
@@ -205,11 +220,46 @@ export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): Re
         {chartTitle}
       </h2>
 
+      {/* ------------------------------------------------------------------ */}
+      {/* Time-range segmented toggle                                          */}
+      {/* radio-group semantics; each option is role="radio" + aria-checked;  */}
+      {/* ≥44×44px touch targets; active = primary color + underline cue.     */}
+      {/* ------------------------------------------------------------------ */}
+      <div
+        role="radiogroup"
+        aria-label={rangeLegendLabel}
+        className="flex gap-[var(--space-1)] mb-[var(--space-3)] flex-wrap"
+      >
+        {CHART_RANGES.map(({ value, labelKey }) => {
+          const isActive = range === value;
+          return (
+            <button
+              key={value}
+              role="radio"
+              aria-checked={isActive}
+              onClick={() => { setRange(value); }}
+              className={[
+                // Base styles — sizing, typography, border, focus ring
+                'min-h-[44px] min-w-[44px] px-[var(--space-3)] py-[var(--space-2)]',
+                'text-[length:var(--text-sm)] font-medium rounded-[var(--radius-pill)]',
+                'border transition-colors duration-[var(--duration-fast)]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-1',
+                // Active vs inactive state — non-color cue: underline on active
+                isActive
+                  ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)] border-[var(--color-primary)] underline'
+                  : 'bg-[var(--color-surface)] text-[var(--color-foreground)] border-[var(--color-border)] hover:border-[var(--color-primary)]',
+              ].join(' ')}
+            >
+              {t(`growth.chartRange.${labelKey}`)}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Recharts responsive container — height fixed so it renders in jsdom tests */}
       <div className="w-full rounded-[var(--radius-sm)] overflow-hidden">
         <ResponsiveContainer width="100%" height={320}>
           <LineChart
-            data={chartData}
             margin={{ top: 8, right: 24, bottom: 24, left: 8 }}
             aria-label={chartTitle}
           >
@@ -222,8 +272,9 @@ export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): Re
             <XAxis
               dataKey="ageMonths"
               type="number"
-              domain={[0, 24]}
-              tickCount={9}
+              domain={[win.xMinMonths, win.xMaxMonths]}
+              allowDataOverflow
+              tickCount={6}
               label={{
                 value: ageAxisLabel,
                 position: 'insideBottom',
@@ -233,9 +284,12 @@ export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): Re
               tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }}
               tickLine={{ stroke: 'var(--color-border)' }}
               axisLine={{ stroke: 'var(--color-border)' }}
+              tickFormatter={(value: number) => value.toFixed(1)}
             />
 
             <YAxis
+              domain={[win.yMinKg, win.yMaxKg]}
+              allowDataOverflow
               label={{
                 value: weightAxisLabel,
                 angle: -90,
@@ -283,13 +337,14 @@ export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): Re
               }}
             />
 
-            {/* WHO percentile reference curves — muted, behind baby data */}
+            {/* WHO percentile reference curves — grid-sampled, muted, behind baby data */}
             {(['3rd', '15th', '50th', '85th', '97th'] as PercentileLabel[]).map((label) => {
               const dataKey = `p${label.replace('th', '').replace('rd', '')}Kg` as
                 | 'p3Kg' | 'p15Kg' | 'p50Kg' | 'p85Kg' | 'p97Kg';
               return (
                 <Line
                   key={label}
+                  data={chartData}
                   type="monotone"
                   dataKey={dataKey}
                   name={label}
@@ -303,9 +358,11 @@ export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): Re
               );
             })}
 
-            {/* Baby's measured weight overlay */}
+            {/* Baby's exact measured weight overlay — uses its own data prop so
+                ages are the precise computed values, never snapped to the curve grid. */}
             {hasEntries && (
               <Line
+                data={exactBabyPoints}
                 type="monotone"
                 dataKey="babyKg"
                 name={babyLabel}
