@@ -320,7 +320,7 @@ export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): Re
                 `${Number(value).toFixed(3)} kg`,
                 name === 'babyKg' ? babyLabel : String(name),
               ]}
-              labelFormatter={(label) => `${String(label)} months`}
+              labelFormatter={(label) => `${Number(label).toFixed(1)} months`}
               // Recharts defaults to sorting tooltip rows by name ("15th" before "3rd").
               // Sort by the numeric percentile instead; baby's value stays on top.
               itemSorter={(item) => {
