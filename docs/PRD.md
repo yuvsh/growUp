@@ -183,6 +183,15 @@ As a parent, I want smart insight cards, so that important changes are surfaced 
 - [ ] Cards use warm, plain language
 - [ ] A clearly-marked extension point exists in the code for adding more insights
 
+**WHO-7** · Should
+As a parent, I want to view my baby's weight-for-age z-score over time, so that I can see whether their growth trajectory is improving, holding steady, or declining — independent of absolute weight gain (an FTT/IUGR baby can gain weight while still losing ground relative to the WHO standard).
+- [ ] The Growth screen offers a `Weight | Z-score` chart toggle when weight entries exist (default: Weight)
+- [ ] The Z-score view plots every measurement exactly once at its exact age (no snapping to a curve grid, no dropping close-together points)
+- [ ] Z-scores use the correct sex-specific WHO LMS table and exact age in days
+- [ ] Subtle, labelled reference lines at z = 0 (median), −2, and −3; calm tokens, never red
+- [ ] Y-axis scaling keeps the 0/−2/−3 anchors visible and avoids making small changes look dramatic
+- [ ] Single entry → one dot; 2+ entries → a connected trajectory line; accessible fallback table lists date, age, weight, z-score (2 dp), and percentile for every entry
+
 ---
 
 ### Epic: Feeding Calculator

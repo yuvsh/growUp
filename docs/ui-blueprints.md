@@ -145,6 +145,19 @@ switcher + account live here — leave a clearly-commented slot.)
 
 ---
 
+### Growth — Z-score trajectory view (WHO-7)
+**Component:** `ZScoreChart` (toggled in, alongside `WeightChart`)
+**Trigger:** a segmented `Weight | Z-score` control near the chart header, shown only when entries exist; default **Weight**.
+**Layout:** when **Z-score** is selected, `WeightChart` is replaced by `ZScoreChart`. One point per weight entry at its exact age (x-axis matches the weight chart's age convention; y-axis = z-score). 1 entry → single dot; 2+ → connected line. Tooltip per point: date, age, weight, z-score (2 dp), percentile.
+**Reference lines:** horizontal, labelled, calm — `z = 0` (median, primary/muted), `z = −2` (caution), `z = −3` (caution-strong). **Never red.**
+**Y-domain:** anchor the clinical lines so they stay visible and small moves don't look dramatic — `yMin = min(dataMin, −3) − 0.5`, `yMax = max(dataMax, 0) + 0.5`.
+**Data:** a shared pure helper `deriveMeasurements(entries, sex, dateOfBirth)` → per-entry `{ ageDays, ageLabel, weightGrams, z, percentile, dateMeasured }` (no snapping); used by both the plotted points and the fallback table.
+**States:** no entries → no toggle, no chart (Growth's empty state already covers this). Loading/error handled by the Growth screen.
+**A11y:** the toggle is a labelled segmented control (radio-group semantics), ≥44×44px, `aria-current`/`aria-checked` on the active option, visible focus. Reference lines labelled in text. Accessible fallback table (date, age, weight, z-score, percentile) — chart is never the sole source. All copy via `t()`.
+**Responsive:** readable at 375px via `ResponsiveContainer`.
+
+---
+
 ## Add / Edit Weight
 **Presentation:** Modal / bottom-sheet over `/growth`.
 **Philosophy:** Apple — two fields, fast.
