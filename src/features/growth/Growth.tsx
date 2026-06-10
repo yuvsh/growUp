@@ -18,6 +18,7 @@
 // ---------------------------------------------------------------------------
 
 import React, { useState } from 'react';
+import { useUiState } from '../../ui-state/UiStateContext';
 import { useChild } from '../../lib/hooks/useChild';
 import { useWeights } from '../../lib/hooks/useWeights';
 import { weightToZResult } from '../../lib/who';
@@ -46,9 +47,6 @@ interface ModalState {
   /** Undefined = add mode; defined = edit mode */
   entry?: WeightEntry;
 }
-
-/** Which chart view is currently selected on the Growth screen. */
-type ChartView = 'weight' | 'zscore';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -79,7 +77,12 @@ export function Growth(): React.JSX.Element {
   const { weights, loading, error, deleteWeight, reload } = useWeights(childId);
 
   const [modal, setModal] = useState<ModalState>({ open: false });
-  const [chartView, setChartView] = useState<ChartView>('weight');
+  const {
+    growthChartView: chartView,
+    setGrowthChartView: setChartView,
+    growthChartRange,
+    setGrowthChartRange,
+  } = useUiState();
 
   // ---- Guard: no child (route guard normally handles this, but be defensive) --
   if (child === null) {
@@ -335,7 +338,13 @@ export function Growth(): React.JSX.Element {
 
           {/* Section 3: Chart — Weight or Z-score depending on toggle state */}
           {chartView === 'weight' ? (
-            <WeightChart entries={weights} sex={sex} dateOfBirth={dateOfBirth} />
+            <WeightChart
+              entries={weights}
+              sex={sex}
+              dateOfBirth={dateOfBirth}
+              range={growthChartRange}
+              onRangeChange={setGrowthChartRange}
+            />
           ) : (
             <ZScoreChart entries={weights} sex={sex} dateOfBirth={dateOfBirth} />
           )}

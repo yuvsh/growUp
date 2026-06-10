@@ -13,6 +13,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { WeightChart } from './WeightChart';
 import type { WeightEntry, Sex } from '../../types';
+import type { ChartRange } from '../../lib/growth/chartWindow';
 
 // ---------------------------------------------------------------------------
 // Recharts + jsdom width shim
@@ -75,11 +76,21 @@ const SAMPLE_ENTRIES: WeightEntry[] = [
 // Helper
 // ---------------------------------------------------------------------------
 
-function renderChart(entries: WeightEntry[] = SAMPLE_ENTRIES): void {
+function renderChart(
+  entries: WeightEntry[] = SAMPLE_ENTRIES,
+  range: ChartRange = '3mo',
+  onRangeChange: (r: ChartRange) => void = vi.fn(),
+): void {
   render(
     // Fixed-size wrapper ensures Recharts has a usable container dimension.
     <div style={{ width: '600px', height: '400px' }}>
-      <WeightChart entries={entries} sex={SEX} dateOfBirth={DOB} />
+      <WeightChart
+        entries={entries}
+        sex={SEX}
+        dateOfBirth={DOB}
+        range={range}
+        onRangeChange={onRangeChange}
+      />
     </div>,
   );
 }
@@ -202,14 +213,22 @@ describe('WeightChart', () => {
       expect(screen.getByRole('radio', { name: '2 yr' })).toBeInTheDocument();
     });
 
-    it('defaults to 3mo selected (aria-checked=true)', () => {
-      renderChart();
+    it('reflects the range prop: 3mo is aria-checked=true when range="3mo"', () => {
+      renderChart(SAMPLE_ENTRIES, '3mo');
       const m3Button = screen.getByRole('radio', { name: '3 mo' });
       expect(m3Button).toHaveAttribute('aria-checked', 'true');
     });
 
-    it('all non-default options have aria-checked=false initially', () => {
-      renderChart();
+    it('reflects the range prop: 1mo is aria-checked=true when range="1mo"', () => {
+      renderChart(SAMPLE_ENTRIES, '1mo');
+      const m1 = screen.getByRole('radio', { name: '1 mo' });
+      expect(m1).toHaveAttribute('aria-checked', 'true');
+      const m3 = screen.getByRole('radio', { name: '3 mo' });
+      expect(m3).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('non-selected options have aria-checked=false when range="3mo"', () => {
+      renderChart(SAMPLE_ENTRIES, '3mo');
       const m1 = screen.getByRole('radio', { name: '1 mo' });
       const m6 = screen.getByRole('radio', { name: '6 mo' });
       const all = screen.getByRole('radio', { name: 'All' });
@@ -220,51 +239,61 @@ describe('WeightChart', () => {
       expect(full).toHaveAttribute('aria-checked', 'false');
     });
 
-    it('clicking "1 mo" sets it to aria-checked=true and deselects 3mo', () => {
-      renderChart();
-      const m1 = screen.getByRole('radio', { name: '1 mo' });
-      const m3 = screen.getByRole('radio', { name: '3 mo' });
-
-      fireEvent.click(m1);
-
-      expect(m1).toHaveAttribute('aria-checked', 'true');
-      expect(m3).toHaveAttribute('aria-checked', 'false');
+    it('reflects the range prop: "All" is aria-checked=true when range="all"', () => {
+      renderChart(SAMPLE_ENTRIES, 'all');
+      expect(screen.getByRole('radio', { name: 'All' })).toHaveAttribute('aria-checked', 'true');
     });
 
-    it('clicking "All" sets it to aria-checked=true', () => {
-      renderChart();
-      const allButton = screen.getByRole('radio', { name: 'All' });
-      fireEvent.click(allButton);
-      expect(allButton).toHaveAttribute('aria-checked', 'true');
+    it('reflects the range prop: "2 yr" is aria-checked=true when range="2y"', () => {
+      renderChart(SAMPLE_ENTRIES, '2y');
+      expect(screen.getByRole('radio', { name: '2 yr' })).toHaveAttribute('aria-checked', 'true');
     });
 
-    it('clicking "2 yr" sets it to aria-checked=true', () => {
-      renderChart();
-      const fullButton = screen.getByRole('radio', { name: '2 yr' });
-      fireEvent.click(fullButton);
-      expect(fullButton).toHaveAttribute('aria-checked', 'true');
-    });
-
-    it('only one option is aria-checked=true at a time after clicking', () => {
-      renderChart();
-      const m6 = screen.getByRole('radio', { name: '6 mo' });
-      fireEvent.click(m6);
-
+    it('only one option is aria-checked=true at a time (controlled by prop)', () => {
+      renderChart(SAMPLE_ENTRIES, '6mo');
       const radios = screen.getAllByRole('radio');
       const checkedRadios = radios.filter((r) => r.getAttribute('aria-checked') === 'true');
       expect(checkedRadios).toHaveLength(1);
-      expect(checkedRadios[0]).toBe(m6);
+      expect(checkedRadios[0]).toBe(screen.getByRole('radio', { name: '6 mo' }));
     });
 
-    it('only one option is aria-checked=true at a time after clicking "2 yr"', () => {
-      renderChart();
-      const full = screen.getByRole('radio', { name: '2 yr' });
-      fireEvent.click(full);
+    // ---- onRangeChange callback ----------------------------------------
 
-      const radios = screen.getAllByRole('radio');
-      const checkedRadios = radios.filter((r) => r.getAttribute('aria-checked') === 'true');
-      expect(checkedRadios).toHaveLength(1);
-      expect(checkedRadios[0]).toBe(full);
+    it('clicking "1 mo" calls onRangeChange with "1mo"', () => {
+      const handleChange = vi.fn();
+      renderChart(SAMPLE_ENTRIES, '3mo', handleChange);
+
+      fireEvent.click(screen.getByRole('radio', { name: '1 mo' }));
+
+      expect(handleChange).toHaveBeenCalledTimes(1);
+      expect(handleChange).toHaveBeenCalledWith('1mo');
+    });
+
+    it('clicking "All" calls onRangeChange with "all"', () => {
+      const handleChange = vi.fn();
+      renderChart(SAMPLE_ENTRIES, '3mo', handleChange);
+
+      fireEvent.click(screen.getByRole('radio', { name: 'All' }));
+
+      expect(handleChange).toHaveBeenCalledWith('all');
+    });
+
+    it('clicking "2 yr" calls onRangeChange with "2y"', () => {
+      const handleChange = vi.fn();
+      renderChart(SAMPLE_ENTRIES, '3mo', handleChange);
+
+      fireEvent.click(screen.getByRole('radio', { name: '2 yr' }));
+
+      expect(handleChange).toHaveBeenCalledWith('2y');
+    });
+
+    it('clicking "6 mo" calls onRangeChange with "6mo"', () => {
+      const handleChange = vi.fn();
+      renderChart(SAMPLE_ENTRIES, '3mo', handleChange);
+
+      fireEvent.click(screen.getByRole('radio', { name: '6 mo' }));
+
+      expect(handleChange).toHaveBeenCalledWith('6mo');
     });
   });
 });

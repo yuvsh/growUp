@@ -18,7 +18,6 @@
  * Tailwind class strings.
  */
 
-import { useState } from 'react';
 import {
   LineChart,
   Line,
@@ -93,6 +92,10 @@ interface WeightChartProps {
   entries: WeightEntry[];
   sex: Sex;
   dateOfBirth: string;
+  /** Currently selected time-range; controlled by the parent via UiStateContext. */
+  range: ChartRange;
+  /** Called when the user selects a different time-range in the toggle. */
+  onRangeChange: (r: ChartRange) => void;
 }
 
 /** A single point in the unified Recharts dataset for the percentile curves. */
@@ -154,10 +157,13 @@ function formatPercentile(p: number): string {
 // Component
 // ---------------------------------------------------------------------------
 
-export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): React.JSX.Element {
-  // ---- State: selected time range ----------------------------------------
-  const [range, setRange] = useState<ChartRange>('3mo');
-
+export function WeightChart({
+  entries,
+  sex,
+  dateOfBirth,
+  range,
+  onRangeChange,
+}: WeightChartProps): React.JSX.Element {
   // ---- Derive i18n strings -----------------------------------------------
   const chartTitle = t('growth.chart.title');
   const ageAxisLabel = t('growth.chart.ageAxis');
@@ -261,7 +267,7 @@ export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): Re
               key={value}
               role="radio"
               aria-checked={isActive}
-              onClick={() => { setRange(value); }}
+              onClick={() => { onRangeChange(value); }}
               className={[
                 // Base styles — sizing, typography, border, focus ring
                 'min-h-[44px] min-w-[44px] px-[var(--space-3)] py-[var(--space-2)]',
