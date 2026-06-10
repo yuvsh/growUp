@@ -3,7 +3,8 @@
  *
  * Strategy: assert against DOM text and roles — the accessible readout is the
  * primary source of truth (the gauge itself is aria-hidden).
- * Weight 5 kg → need band 600–1000 ml/day.
+ * Weight 5 kg → standard need band: min 600 ml/day, target 750 ml/day, max 1000 ml/day.
+ * With kcalPerMl = 1.0 (high-cal): factor = 0.67/1.0 = 0.67, so band is lower.
  */
 
 import { render, screen, fireEvent } from '@testing-library/react'
@@ -18,18 +19,24 @@ interface ComponentProps {
   weightKg?: number
   intakeMlPerDay?: number | null
   onIntakeChange?: ReturnType<typeof vi.fn>
+  useHighCalorie?: boolean
+  kcalPerMl?: number
 }
 
 function renderComponent({
   weightKg = 5,
   intakeMlPerDay = null,
   onIntakeChange = vi.fn(),
+  useHighCalorie = false,
+  kcalPerMl = 0.67,
 }: ComponentProps = {}): { onIntakeChange: ReturnType<typeof vi.fn> } {
   render(
     <IntakeVsNeed
       weightKg={weightKg}
       intakeMlPerDay={intakeMlPerDay}
       onIntakeChange={onIntakeChange}
+      useHighCalorie={useHighCalorie}
+      kcalPerMl={kcalPerMl}
     />,
   )
   return { onIntakeChange }
@@ -40,7 +47,7 @@ function renderComponent({
 // ---------------------------------------------------------------------------
 
 describe('IntakeVsNeed', () => {
-  describe('with weight 5 kg (need 600–1000 ml/day)', () => {
+  describe('with weight 5 kg, standard formula (need 600–1000 ml/day)', () => {
     it('shows "below" status text when intake is 400 ml/day', () => {
       renderComponent({ weightKg: 5, intakeMlPerDay: 400 })
       expect(screen.getByText('below the recommended range')).toBeInTheDocument()
@@ -66,6 +73,72 @@ describe('IntakeVsNeed', () => {
     })
   })
 
+  describe('high-calorie mode: concentrated formula lowers the recommended range', () => {
+    // Standard (5 kg): min=600, max=1000
+    // High-cal (kcalPerMl=1.0): factor = 0.67/1.0 = 0.67 → min≈402, max≈670
+    it('shows "within" for intake 500 ml/day when high-cal is ON (range ≈ 402–670)', () => {
+      renderComponent({ weightKg: 5, intakeMlPerDay: 500, useHighCalorie: true, kcalPerMl: 1.0 })
+      expect(screen.getByText('within the recommended range')).toBeInTheDocument()
+    })
+
+    it('shows "above" for intake 800 ml/day when high-cal is ON (max ≈ 670)', () => {
+      renderComponent({ weightKg: 5, intakeMlPerDay: 800, useHighCalorie: true, kcalPerMl: 1.0 })
+      expect(screen.getByText('above the recommended range')).toBeInTheDocument()
+    })
+
+    it('shows "below" for intake 800 ml/day when high-cal is OFF (standard min=600, max=1000)', () => {
+      // 800 is within the standard range — should be "within"
+      renderComponent({ weightKg: 5, intakeMlPerDay: 800, useHighCalorie: false, kcalPerMl: 0.67 })
+      expect(screen.getByText('within the recommended range')).toBeInTheDocument()
+    })
+
+    it('high-cal readout shows a lower recommended max than standard', () => {
+      // Standard: max 1000; high-cal (1.0 kcal/ml): max ≈ 670
+      // We check that the readout text for high-cal contains a smaller max number.
+      const { unmount } = render(
+        <IntakeVsNeed
+          weightKg={5}
+          intakeMlPerDay={700}
+          onIntakeChange={vi.fn()}
+          useHighCalorie={true}
+          kcalPerMl={1.0}
+        />,
+      )
+      // High-cal max ≈ 670 → readout says "recommended 402–670 ml/day" (rounded)
+      expect(screen.getByText(/recommended 402–670 ml\/day/)).toBeInTheDocument()
+      unmount()
+
+      render(
+        <IntakeVsNeed
+          weightKg={5}
+          intakeMlPerDay={700}
+          onIntakeChange={vi.fn()}
+          useHighCalorie={false}
+          kcalPerMl={0.67}
+        />,
+      )
+      // Standard max = 1000 → readout says "recommended 600–1000 ml/day"
+      expect(screen.getByText(/recommended 600–1000 ml\/day/)).toBeInTheDocument()
+    })
+  })
+
+  describe('reference tick labels (120 / 150 / 200)', () => {
+    it('renders the 120 reference tick', () => {
+      renderComponent({ weightKg: 5 })
+      expect(screen.getByText('120')).toBeInTheDocument()
+    })
+
+    it('renders the 150 reference tick', () => {
+      renderComponent({ weightKg: 5 })
+      expect(screen.getByText('150')).toBeInTheDocument()
+    })
+
+    it('renders the 200 reference tick', () => {
+      renderComponent({ weightKg: 5 })
+      expect(screen.getByText('200')).toBeInTheDocument()
+    })
+  })
+
   describe('input interaction', () => {
     it('calls onIntakeChange with the numeric value when a valid number is typed', () => {
       const onIntakeChange = vi.fn()
@@ -74,6 +147,8 @@ describe('IntakeVsNeed', () => {
           weightKg={5}
           intakeMlPerDay={null}
           onIntakeChange={onIntakeChange}
+          useHighCalorie={false}
+          kcalPerMl={0.67}
         />,
       )
       const input = screen.getByLabelText('Average daily intake — last 7 days')
@@ -88,6 +163,8 @@ describe('IntakeVsNeed', () => {
           weightKg={5}
           intakeMlPerDay={700}
           onIntakeChange={onIntakeChange}
+          useHighCalorie={false}
+          kcalPerMl={0.67}
         />,
       )
       const input = screen.getByLabelText('Average daily intake — last 7 days')
@@ -102,6 +179,8 @@ describe('IntakeVsNeed', () => {
           weightKg={5}
           intakeMlPerDay={null}
           onIntakeChange={onIntakeChange}
+          useHighCalorie={false}
+          kcalPerMl={0.67}
         />,
       )
       const input = screen.getByLabelText('Average daily intake — last 7 days')

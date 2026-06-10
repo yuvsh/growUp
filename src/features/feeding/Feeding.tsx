@@ -312,6 +312,8 @@ export function Feeding(): React.JSX.Element {
                 // Error tracked by hook; no additional handling needed here.
               })
             }}
+            useHighCalorie={useHighCalorie}
+            kcalPerMl={storedKcalPerMl}
           />
         </>
       )}

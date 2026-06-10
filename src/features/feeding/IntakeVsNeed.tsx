@@ -7,13 +7,20 @@
  * Status: below = caution amber (NEVER red), within = success, above = neutral.
  * A11y: labelled input; readout is the accessible equivalent of the gauge;
  *        status communicated via icon + text (never color alone).
+ *
+ * Positioning note: ALL dynamic percentage positions use inline style with
+ * logical CSS properties (insetInlineStart, width).  This is the sanctioned
+ * exception to the no-inline-styles rule — Tailwind v4 cannot generate classes
+ * from runtime-interpolated numbers.  Colors, sizes, and radii stay as Tailwind
+ * token classes.
  */
 
 import React from 'react'
 import { Card } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
 import { t } from '../../i18n/t'
-import { dailyVolumeRange, classifyIntake } from '../../lib/feeding/index'
+import { intakeNeed, classifyIntake } from '../../lib/feeding/index'
+import { ML_PER_KG_MIN, ML_PER_KG_TARGET, ML_PER_KG_MAX } from '../../lib/constants/feeding'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -23,6 +30,8 @@ interface IntakeVsNeedProps {
   weightKg: number
   intakeMlPerDay: number | null
   onIntakeChange: (value: number | null) => void
+  useHighCalorie: boolean
+  kcalPerMl: number
 }
 
 // ---------------------------------------------------------------------------
@@ -44,7 +53,7 @@ function computeScaleMax(maxMl: number): number {
 
 /**
  * Convert a ml value to a clamped percentage (0–100) relative to scaleMax.
- * Returns a number for Tailwind arbitrary class generation.
+ * Returns a number for use in inline style percentage strings.
  */
 function toPercent(value: number, scaleMax: number): number {
   return Math.min(100, Math.max(0, (value / scaleMax) * 100))
@@ -117,15 +126,65 @@ function AboveIcon(): React.JSX.Element {
 }
 
 // ---------------------------------------------------------------------------
-// GaugeBar — isolated sub-component; receives pre-computed percent values
+// ReferenceTick — a single labelled tick mark on the gauge
+// ---------------------------------------------------------------------------
+
+interface ReferenceTickProps {
+  /** Position as a percentage (0–100) along the gauge width. */
+  pct: number
+  /** ml/kg/day reference number to display (e.g. 120, 150, 200). */
+  mlPerKg: number
+}
+
+function ReferenceTick({ pct, mlPerKg }: ReferenceTickProps): React.JSX.Element {
+  return (
+    <div
+      className="absolute top-0 flex flex-col items-center"
+      style={{ insetInlineStart: `${pct}%`, transform: 'translateX(-50%)' }}
+    >
+      {/* Tick line */}
+      <div
+        className={[
+          'w-[1px] h-[12px]',
+          'bg-[var(--color-text-muted)]',
+          'opacity-60',
+        ].join(' ')}
+      />
+      {/* Label */}
+      <span
+        className={[
+          'text-[length:var(--text-caption)]',
+          'text-[var(--color-text-muted)]',
+          'whitespace-nowrap',
+          'mt-[2px]',
+        ].join(' ')}
+      >
+        {mlPerKg}
+      </span>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// GaugeBar — isolated sub-component; receives pre-computed percent values.
+// ALL dynamic % positions use inline style (logical CSS) — see file header.
 // ---------------------------------------------------------------------------
 
 interface GaugeBarProps {
+  /** Start percentage of the need band (at minMl). */
   needBandStartPct: number
+  /** Width percentage of the need band (maxMl − minMl). */
   needBandWidthPct: number
+  /** Percentage position of the intake marker, or null when intake is unset. */
   markerPct: number | null
+  /** Rounded intake value shown below the marker label. */
   intakeMlDisplay: number | null
+  /** Scale maximum in ml (shown as the right-most label). */
   scaleMax: number
+  /** Tick mark percentages for the three reference levels. */
+  tickMinPct: number
+  tickTargetPct: number
+  tickMaxPct: number
 }
 
 function GaugeBar({
@@ -134,14 +193,10 @@ function GaugeBar({
   markerPct,
   intakeMlDisplay,
   scaleMax,
+  tickMinPct,
+  tickTargetPct,
+  tickMaxPct,
 }: GaugeBarProps): React.JSX.Element {
-  // Tailwind v4 supports arbitrary values that are dynamic at render time.
-  // We build class names from the computed percentages so we avoid style={{}}.
-  const bandStartClass = `inset-inline-start-[${needBandStartPct.toFixed(2)}%]`
-  const bandWidthClass = `w-[${needBandWidthPct.toFixed(2)}%]`
-  const markerStartClass =
-    markerPct !== null ? `inset-inline-start-[${markerPct.toFixed(2)}%]` : ''
-
   return (
     <div aria-hidden="true" className="flex flex-col gap-[var(--space-2)]">
       {/* Scale labels */}
@@ -158,8 +213,9 @@ function GaugeBar({
         </span>
       </div>
 
-      {/* Track container — needs overflow-visible so the marker label can show below */}
-      <div className="relative pb-[var(--space-5)]">
+      {/* Track container — needs overflow-visible so ticks and marker label
+          can show outside the track bounds */}
+      <div className="relative pb-[var(--space-8)]">
         {/* Track */}
         <div
           className={[
@@ -169,18 +225,20 @@ function GaugeBar({
             'bg-[var(--color-muted)]',
           ].join(' ')}
         >
-          {/* Need band */}
+          {/* Need band — inline style for dynamic % position + width */}
           <div
             className={[
               'absolute top-0 h-full',
               'rounded-[var(--radius-pill)]',
               'bg-[color-mix(in_srgb,var(--color-success)_25%,transparent)]',
-              bandStartClass,
-              bandWidthClass,
             ].join(' ')}
+            style={{
+              insetInlineStart: `${needBandStartPct}%`,
+              width: `${needBandWidthPct}%`,
+            }}
           />
 
-          {/* Intake marker — only when intake is set */}
+          {/* Intake marker — only when intake is set; inline style for % position */}
           {markerPct !== null && (
             <div
               className={[
@@ -188,28 +246,37 @@ function GaugeBar({
                 'h-[20px] w-[3px]',
                 'rounded-[var(--radius-pill)]',
                 'bg-[var(--color-foreground)]',
-                markerStartClass,
               ].join(' ')}
+              style={{ insetInlineStart: `${markerPct}%` }}
             />
           )}
         </div>
 
-        {/* Intake value label anchored under the marker */}
+        {/* Intake value label anchored under the marker — inline style for % position */}
         {markerPct !== null && intakeMlDisplay !== null && (
           <div
             className={[
               'absolute top-[18px]',
-              '-translate-x-1/2',
               'text-[length:var(--text-caption)]',
               'text-[var(--color-foreground)]',
               'font-medium',
               'whitespace-nowrap',
-              markerStartClass,
             ].join(' ')}
+            style={{
+              insetInlineStart: `${markerPct}%`,
+              transform: 'translateX(-50%)',
+            }}
           >
             {roundMl(intakeMlDisplay)}
           </div>
         )}
+
+        {/* Reference ticks — 120 / 150 / 200 ml/kg/day — inline style for % positions */}
+        <div className="absolute top-[14px] inset-inline-start-0 w-full">
+          <ReferenceTick pct={tickMinPct} mlPerKg={ML_PER_KG_MIN} />
+          <ReferenceTick pct={tickTargetPct} mlPerKg={ML_PER_KG_TARGET} />
+          <ReferenceTick pct={tickMaxPct} mlPerKg={ML_PER_KG_MAX} />
+        </div>
       </div>
     </div>
   )
@@ -223,8 +290,10 @@ export function IntakeVsNeed({
   weightKg,
   intakeMlPerDay,
   onIntakeChange,
+  useHighCalorie,
+  kcalPerMl,
 }: IntakeVsNeedProps): React.JSX.Element {
-  const need = dailyVolumeRange(weightKg)
+  const need = intakeNeed(weightKg, useHighCalorie ? kcalPerMl : undefined)
   const scaleMax = computeScaleMax(need.maxMl)
 
   // ---- Input handler -------------------------------------------------------
@@ -249,6 +318,11 @@ export function IntakeVsNeed({
   const needBandStartPct = toPercent(need.minMl, scaleMax)
   const needBandWidthPct = toPercent(need.maxMl - need.minMl, scaleMax)
   const markerPct = intakeMlPerDay !== null ? toPercent(intakeMlPerDay, scaleMax) : null
+
+  // Reference tick positions
+  const tickMinPct = toPercent(need.minMl, scaleMax)
+  const tickTargetPct = toPercent(need.targetMl, scaleMax)
+  const tickMaxPct = toPercent(need.maxMl, scaleMax)
 
   // ---- Readout text --------------------------------------------------------
 
@@ -309,6 +383,9 @@ export function IntakeVsNeed({
           markerPct={markerPct}
           intakeMlDisplay={intakeMlPerDay}
           scaleMax={scaleMax}
+          tickMinPct={tickMinPct}
+          tickTargetPct={tickTargetPct}
+          tickMaxPct={tickMaxPct}
         />
 
         {/* Readout — accessible live region */}

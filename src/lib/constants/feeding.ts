@@ -15,6 +15,9 @@
 /** Minimum daily fluid intake: 120 ml per kg of body weight. */
 export const ML_PER_KG_MIN: number = 120
 
+/** Target daily fluid intake: 150 ml per kg of body weight (common clinical target). */
+export const ML_PER_KG_TARGET: number = 150
+
 /** Maximum daily fluid intake: 200 ml per kg of body weight. */
 export const ML_PER_KG_MAX: number = 200
 

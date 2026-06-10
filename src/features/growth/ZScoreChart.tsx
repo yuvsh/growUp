@@ -121,6 +121,7 @@ export function ZScoreChart({ entries, sex, dateOfBirth }: ZScoreChartProps): Re
 
   const measurements = deriveMeasurements(entries, sex, dateOfBirth);
 
+  // Chart data stays chronological ascending (oldest → newest) for the line plot.
   const chartData: ZChartPoint[] = measurements.map((m) => ({
     ageMonths: parseFloat((m.ageDays / DAYS_PER_MONTH).toFixed(2)),
     z: m.z,
@@ -297,7 +298,8 @@ export function ZScoreChart({ entries, sex, dateOfBirth }: ZScoreChartProps): Re
             </tr>
           </thead>
           <tbody>
-            {measurements.map((m) => (
+            {/* Table lists newest → oldest; chartData keeps ascending order. */}
+            {[...measurements].reverse().map((m) => (
               <tr
                 key={m.entry.id}
                 className="border-b border-[var(--color-border)] last:border-0"

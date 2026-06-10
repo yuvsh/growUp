@@ -6,6 +6,7 @@ import {
   calorieAdjustedRange,
   standardFeeding,
   classifyIntake,
+  intakeNeed,
 } from './index'
 import {
   STANDARD_KCAL_PER_ML,
@@ -177,5 +178,68 @@ describe('standardFeeding', () => {
   it('uses DEFAULT_FEEDS_PER_DAY when feedsPerDay is omitted', () => {
     const result = standardFeeding(5)
     expect(result.feedsPerDay).toBe(DEFAULT_FEEDS_PER_DAY)
+  })
+})
+
+describe('intakeNeed', () => {
+  describe('standard formula (kcalPerMl omitted or undefined)', () => {
+    it('returns min=600, target=750, max=1000 for a 5 kg baby (factor=1)', () => {
+      const result = intakeNeed(5)
+      expect(result.minMl).toBe(600)       // 5 * 120 * 1
+      expect(result.targetMl).toBe(750)    // 5 * 150 * 1
+      expect(result.maxMl).toBe(1000)      // 5 * 200 * 1
+    })
+
+    it('scales linearly with weight', () => {
+      const result = intakeNeed(3)
+      expect(result.minMl).toBe(360)       // 3 * 120
+      expect(result.targetMl).toBe(450)    // 3 * 150
+      expect(result.maxMl).toBe(600)       // 3 * 200
+    })
+
+    it('passing undefined explicitly is equivalent to omitting kcalPerMl', () => {
+      const a = intakeNeed(5, undefined)
+      const b = intakeNeed(5)
+      expect(a).toEqual(b)
+    })
+  })
+
+  describe('high-calorie formula (kcalPerMl = 1.0)', () => {
+    // factor = STANDARD_KCAL_PER_ML / 1.0 = 0.67
+    // 5 kg → min = 600 * 0.67 = 402, target = 750 * 0.67 = 502.5, max = 1000 * 0.67 = 670
+    it('returns lower volumes when kcalPerMl > STANDARD_KCAL_PER_ML', () => {
+      const result = intakeNeed(5, 1.0)
+      expect(result.minMl).toBeCloseTo(5 * 120 * (STANDARD_KCAL_PER_ML / 1.0), 5)
+      expect(result.targetMl).toBeCloseTo(5 * 150 * (STANDARD_KCAL_PER_ML / 1.0), 5)
+      expect(result.maxMl).toBeCloseTo(5 * 200 * (STANDARD_KCAL_PER_ML / 1.0), 5)
+    })
+
+    it('minMl is approximately 402 for 5 kg at kcalPerMl = 1.0', () => {
+      const result = intakeNeed(5, 1.0)
+      expect(result.minMl).toBeCloseTo(402, 0)
+    })
+
+    it('maxMl is approximately 670 for 5 kg at kcalPerMl = 1.0', () => {
+      const result = intakeNeed(5, 1.0)
+      expect(result.maxMl).toBeCloseTo(670, 0)
+    })
+
+    it('all values are lower than the standard need', () => {
+      const standard = intakeNeed(5)
+      const highCal = intakeNeed(5, 1.0)
+      expect(highCal.minMl).toBeLessThan(standard.minMl)
+      expect(highCal.targetMl).toBeLessThan(standard.targetMl)
+      expect(highCal.maxMl).toBeLessThan(standard.maxMl)
+    })
+  })
+
+  describe('standard formula passed explicitly (kcalPerMl = STANDARD_KCAL_PER_ML)', () => {
+    it('returns the same result as omitting kcalPerMl (factor = 1)', () => {
+      const explicit = intakeNeed(5, STANDARD_KCAL_PER_ML)
+      const omitted = intakeNeed(5)
+      expect(explicit.minMl).toBeCloseTo(omitted.minMl, 5)
+      expect(explicit.targetMl).toBeCloseTo(omitted.targetMl, 5)
+      expect(explicit.maxMl).toBeCloseTo(omitted.maxMl, 5)
+    })
   })
 })
