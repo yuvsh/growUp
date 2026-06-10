@@ -285,6 +285,21 @@ graph LR
 
 ---
 
+### M2-13 · Import weights from Nara Baby CSV · M — PRD: WHO-8
+*Added post-MVP. Epic: WHO Weight Tracking. Scope: weights only for now.*
+**Owns:** `src/lib/import/naraBaby.ts`, `src/lib/import/naraBaby.test.ts`, `src/features/growth/ImportNaraBaby.tsx`, `src/features/growth/ImportNaraBaby.test.tsx`, `src/features/growth/Growth.tsx`, `src/i18n/copy/en.ts`
+**Reads:** `src/lib/hooks/useWeights.ts` (`isWeightDateValid`, add/edit), `src/types/index.ts`, `docs/export_narababy_ori_20260610.csv` (real sample), `design-system/MASTER.md`
+**Context:** Nara Baby exports a CSV where weights are rows with `Type = "Growth"` and a non-empty `[Growth] Weight` (KG) + `Start Date/time` (`YYYY-MM-DD HH:MM:SS`). Build a **pure parser** `parseNaraBabyWeights(csvText): { dateMeasured: string; weightGrams: number }[]` (RFC4180-ish CSV handling for quoted fields; KG→grams, LB→grams defensively; date = first 10 chars; ignore non-Growth and weightless Growth rows; throw a typed error if the Nara header columns are absent). UI: an **"Import from Nara Baby"** button on the Growth screen → `.csv` file picker → a confirm-preview modal showing counts (new / will-update-existing-date / skipped-out-of-0–24mo), then import into the current child via `useWeights` (**overwrite** existing same-date entries via `editWeight`, add the rest). Imports weights only — never touches the child profile.
+**Done when:**
+- [ ] Parser unit-tested with a small fixture AND the real `docs/export_narababy_ori_20260610.csv` (asserts 20 weights, KG→grams, dates `YYYY-MM-DD`); malformed/non-Nara input → typed error
+- [ ] Growth shows an "Import from Nara Baby" action; selecting the sample CSV previews counts and imports the in-range weights into the current child
+- [ ] Existing same-date entries are overwritten; out-of-range dates skipped + reported; success toast
+- [ ] all new copy via `t()`; no inline styles; tokens + logical CSS; a11y (labelled file input/button, modal)
+- [ ] `npm run type-check`, `npm run test`, `npm run lint`, `npm run build` all pass
+- [ ] `superpowers:verification-before-completion` gate passed
+
+---
+
 ## Milestone 3 — Feeding Calculator
 *Goal: a parent enters weight → daily ml range + per-feed amount; high-calorie mode delivers a calorie-matched (lower) volume.*
 

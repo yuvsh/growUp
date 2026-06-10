@@ -77,7 +77,7 @@ export function Profile(): React.JSX.Element {
     child.sex === 'male' ? t('profile.sex.male') : t('profile.sex.female');
 
   return (
-    <main className="flex flex-col gap-[var(--space-6)] p-[var(--space-4)] max-w-[560px] mx-auto w-full">
+    <main className="flex flex-col gap-[var(--space-6)] p-[var(--space-4)] max-w-[560px] mx-auto w-full pb-[var(--space-20)]">
 
       {/* ---- Header: name + current age (plain text, not color-coded) ------- */}
       <header className="flex flex-col gap-[var(--space-1)]">

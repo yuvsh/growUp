@@ -262,9 +262,20 @@ export function WeightChart({ entries, sex, dateOfBirth }: WeightChartProps): Re
                 name === 'babyKg' ? babyLabel : String(name),
               ]}
               labelFormatter={(label) => `${String(label)} months`}
+              // Recharts defaults to sorting tooltip rows by name ("15th" before "3rd").
+              // Sort by the numeric percentile instead; baby's value stays on top.
+              itemSorter={(item) => {
+                const itemName = String(item.name ?? '');
+                if (itemName === babyLabel) return -1;
+                const pct = parseInt(itemName, 10);
+                return Number.isNaN(pct) ? 999 : pct;
+              }}
             />
 
             <Legend
+              // Recharts defaults to sorting legend items by name ("value"), which
+              // orders "15th" before "3rd" lexically. null keeps our 3→97 declaration order.
+              itemSorter={null}
               wrapperStyle={{
                 fontSize: '0.75rem',
                 color: 'var(--color-text-muted)',

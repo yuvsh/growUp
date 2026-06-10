@@ -17,6 +17,7 @@ import { useChild } from '../../lib/hooks/useChild'
 import { useWeights } from '../../lib/hooks/useWeights'
 import { useFeeding } from '../../lib/hooks/useFeeding'
 import { dailyVolumeRange, perFeed } from '../../lib/feeding/index'
+import { ageFromDob, formatAge } from '../../lib/growth/age'
 import { Card } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
 import { EmptyState } from '../../components/ui/empty-state'
@@ -133,24 +134,32 @@ export function Feeding(): React.JSX.Element {
         'flex flex-col gap-[var(--space-5)]',
         'p-[var(--space-4)]',
         'max-w-2xl mx-auto w-full',
-        'pb-[var(--space-16)]',
+        'pb-[var(--space-20)]',
       ].join(' ')}
       aria-label={t('feeding.title')}
     >
       {/* ------------------------------------------------------------------ */}
       {/* Page title                                                           */}
       {/* ------------------------------------------------------------------ */}
-      <h1
-        className={[
-          'text-[length:var(--text-h1)]',
-          'font-[family-name:var(--font-heading)]',
-          'text-[var(--color-foreground)]',
-          'font-semibold',
-          'm-0',
-        ].join(' ')}
-      >
-        {t('feeding.title')}
-      </h1>
+      {/* Header — baby name + age, consistent with Growth & Profile */}
+      <header className="flex flex-col gap-[var(--space-1)]">
+        <h1
+          className={[
+            'text-[length:var(--text-h1)]',
+            'font-[family-name:var(--font-heading)]',
+            'text-[var(--color-foreground)]',
+            'font-semibold',
+            'm-0',
+          ].join(' ')}
+        >
+          {child?.name ?? ''}
+        </h1>
+        {child !== null && (
+          <p className="text-[length:var(--text-body)] text-[var(--color-text-muted)] m-0">
+            {formatAge(ageFromDob(child.dateOfBirth))}
+          </p>
+        )}
+      </header>
 
       {/* ------------------------------------------------------------------ */}
       {/* Empty state: no prefill weight and field untouched                  */}
@@ -207,17 +216,15 @@ export function Feeding(): React.JSX.Element {
             {/* ---------------------------------------------------------- */}
             <Card>
               <div className="flex flex-col gap-[var(--space-3)]">
-                <h2
+                <span
                   className={[
-                    'text-[length:var(--text-h3)]',
-                    'font-[family-name:var(--font-heading)]',
-                    'text-[var(--color-foreground)]',
-                    'font-semibold',
-                    'm-0',
+                    'text-[length:var(--text-sm)]',
+                    'font-medium',
+                    'text-[var(--color-text-muted)]',
                   ].join(' ')}
                 >
                   {t('feeding.dailyRange')}
-                </h2>
+                </span>
 
                 <p
                   className={[

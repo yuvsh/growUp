@@ -93,7 +93,7 @@ export function Modal({
     // Backdrop
     <div
       className={[
-        'fixed inset-0 z-50',
+        'fixed inset-0 z-[100]',
         'flex items-end sm:items-center justify-center',
         'bg-[var(--color-foreground)]/40',
         'p-0 sm:p-[var(--space-4)]',

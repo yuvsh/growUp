@@ -192,6 +192,14 @@ As a parent, I want to view my baby's weight-for-age z-score over time, so that 
 - [ ] Y-axis scaling keeps the 0/−2/−3 anchors visible and avoids making small changes look dramatic
 - [ ] Single entry → one dot; 2+ entries → a connected trajectory line; accessible fallback table lists date, age, weight, z-score (2 dp), and percentile for every entry
 
+**WHO-8** · Should
+As a parent already tracking in another app, I want to import my baby's weights from a Nara Baby CSV export, so that I don't have to re-enter months of history by hand.
+- [ ] An "Import from Nara Baby" action on the Growth screen accepts the app's CSV export and extracts weight entries (weights only for now)
+- [ ] Before importing, a preview shows how many weights are new, how many will update an existing date, and how many fall outside the supported 0–24 month range
+- [ ] Imported weights go into the current child; an existing entry on the same date is overwritten with the CSV value; out-of-range dates are skipped
+- [ ] A non–Nara-Baby file is rejected with a calm, plain-language message
+- [ ] The import never alters the child's profile
+
 ---
 
 ### Epic: Feeding Calculator

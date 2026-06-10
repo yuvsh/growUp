@@ -53,8 +53,8 @@ const en = {
     },
     sex: {
       label: "Baby's sex",
-      male: 'Male',
-      female: 'Female',
+      male: 'Boy',
+      female: 'Girl',
       why: 'We use this to choose the correct WHO growth standard.',
     },
     childForm: {
@@ -141,6 +141,17 @@ const en = {
       label: 'Chart view',
       weight: 'Weight',
       zscore: 'Z-score',
+    },
+    import: {
+      button: 'Import from Nara Baby',
+      title: 'Import from Nara Baby',
+      summary: 'Found {found} weights: {new} new, {update} to update, {skipped} skipped',
+      confirm: 'Import',
+      cancel: 'Cancel',
+      success: 'Imported {count} weight entries',
+      parseError: 'Could not read the file. Please make sure it is a valid Nara Baby CSV export.',
+      empty: 'No weight entries were found in this file.',
+      fileInputLabel: 'Select Nara Baby CSV file',
     },
     zChart: {
       title: 'Z-score for age',

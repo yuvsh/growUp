@@ -33,6 +33,7 @@ import { ProjectionCard } from './ProjectionCard';
 import { InsightsList } from './InsightsList';
 import { WeightHistoryList } from './WeightHistoryList';
 import { WeightForm } from './WeightForm';
+import { ImportNaraBaby } from './ImportNaraBaby';
 import { t } from '../../i18n/t';
 import type { WeightEntry } from '../../types';
 
@@ -169,7 +170,7 @@ export function Growth(): React.JSX.Element {
 
   return (
     <main
-      className="flex flex-col gap-[var(--space-5)] p-[var(--space-4)] max-w-2xl mx-auto w-full pb-[var(--space-16)]"
+      className="flex flex-col gap-[var(--space-5)] p-[var(--space-4)] max-w-2xl mx-auto w-full pb-[var(--space-20)]"
       aria-label={t('growth.title')}
     >
       {/* ------------------------------------------------------------------ */}
@@ -236,14 +237,24 @@ export function Growth(): React.JSX.Element {
         <EmptyState
           title={t('growth.empty.title')}
           action={
-            <Button
-              variant="primary"
-              onClick={openAddModal}
-              aria-label={t('growth.addWeight')}
-              className="min-h-[44px] min-w-[44px]"
-            >
-              {t('growth.empty.cta')}
-            </Button>
+            <div className="flex flex-col items-center gap-[var(--space-3)]">
+              <Button
+                variant="primary"
+                onClick={openAddModal}
+                aria-label={t('growth.addWeight')}
+                className="min-h-[44px] min-w-[44px]"
+              >
+                {t('growth.empty.cta')}
+              </Button>
+              {/* Import is most useful here — a parent migrating from Nara Baby
+                  starts with no weights, so the entry point must exist in the empty state. */}
+              <ImportNaraBaby
+                childId={activeChildId}
+                dateOfBirth={dateOfBirth}
+                existingEntries={weights}
+                onImported={reload}
+              />
+            </div>
           }
         />
       )}
@@ -253,6 +264,24 @@ export function Growth(): React.JSX.Element {
       {/* ------------------------------------------------------------------ */}
       {hasEntries && (
         <>
+          {/* Actions: Add weight + Import — kept at the top for quick access */}
+          <div className="flex flex-wrap items-center justify-end gap-[var(--space-3)]">
+            <ImportNaraBaby
+              childId={activeChildId}
+              dateOfBirth={dateOfBirth}
+              existingEntries={weights}
+              onImported={reload}
+            />
+            <Button
+              variant="primary"
+              onClick={openAddModal}
+              aria-label={t('growth.addWeight')}
+              className="min-h-[44px] min-w-[44px]"
+            >
+              {t('growth.addWeight')}
+            </Button>
+          </div>
+
           {/* Section 2: BelowThirdAlert — conditional caution amber */}
           <BelowThirdAlert entries={weights} sex={sex} dateOfBirth={dateOfBirth} />
 
@@ -326,22 +355,6 @@ export function Growth(): React.JSX.Element {
             onDelete={handleDeleteEntry}
           />
         </>
-      )}
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Section 7: "Add weight" — always visible when entries exist         */}
-      {/* ------------------------------------------------------------------ */}
-      {hasEntries && (
-        <div className="flex justify-end">
-          <Button
-            variant="primary"
-            onClick={openAddModal}
-            aria-label={t('growth.addWeight')}
-            className="min-h-[44px] min-w-[44px]"
-          >
-            {t('growth.addWeight')}
-          </Button>
-        </div>
       )}
 
       {/* ------------------------------------------------------------------ */}

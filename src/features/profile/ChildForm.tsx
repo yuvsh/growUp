@@ -8,7 +8,7 @@
 // States: blank (add) / prefilled (edit); Save spinner; field errors below each field;
 //         save failure → Toast "Couldn't save — your details are still here".
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -41,6 +41,7 @@ export function ChildForm(): React.JSX.Element {
     register,
     handleSubmit,
     control,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<ChildFormValues>({
     // The Zod schema output type (ChildFormOutput) is narrower than the form
@@ -55,6 +56,15 @@ export function ChildForm(): React.JSX.Element {
       dateOfBirth: child?.dateOfBirth ?? '',
     },
   });
+
+  // The child loads asynchronously, so its data usually arrives AFTER react-hook-form
+  // has already captured its (empty) defaultValues. Re-populate the form once the
+  // child is available (edit mode) so the current values show instead of blanks.
+  useEffect(() => {
+    if (child !== null) {
+      reset({ name: child.name, sex: child.sex, dateOfBirth: child.dateOfBirth });
+    }
+  }, [child, reset]);
 
   // ---- Submit handler -------------------------------------------------------
 
