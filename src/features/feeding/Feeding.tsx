@@ -16,13 +16,12 @@ import { t } from '../../i18n/t'
 import { useChild } from '../../lib/hooks/useChild'
 import { useWeights } from '../../lib/hooks/useWeights'
 import { useFeeding } from '../../lib/hooks/useFeeding'
-import { dailyVolumeRange, perFeed, toKcalPerMl } from '../../lib/feeding/index'
+import { dailyVolumeRange, perFeed } from '../../lib/feeding/index'
 import { Card } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
 import { EmptyState } from '../../components/ui/empty-state'
 import { FeedsPerDayStepper } from './FeedsPerDayStepper'
 import { HighCaloriePanel } from './HighCaloriePanel'
-import type { KcalUnit } from './types'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -87,14 +86,8 @@ export function Feeding(): React.JSX.Element {
   const feedsPerDay: number = config?.feedsPerDay ?? 8
   const useHighCalorie: boolean = config?.useHighCalorie ?? false
 
-  // The HighCaloriePanel stores the raw user-entered value plus the unit.
-  // We keep local unit state since config only stores kcalPerMl.
-  const [unit, setUnit] = useState<KcalUnit>('kcal/ml')
-
-  // Convert stored kcalPerMl back to the display unit for HighCaloriePanel.
+  // The stored kcalPerMl is used directly (always kcal/ml — no unit conversion).
   const storedKcalPerMl: number = config?.kcalPerMl ?? 0.67
-  const kcalDisplayValue: number =
-    unit === 'kcal/oz' ? storedKcalPerMl * 29.5735 : storedKcalPerMl
 
   // ---- Computed ranges (only when weight is valid) -------------------------
 
@@ -120,22 +113,13 @@ export function Feeding(): React.JSX.Element {
   function handleHighCalorieChange(patch: {
     enabled?: boolean
     kcalValue?: number
-    unit?: KcalUnit
   }): void {
     const nextEnabled = patch.enabled ?? useHighCalorie
-    const nextUnit = patch.unit ?? unit
-    const nextKcalValue = patch.kcalValue ?? kcalDisplayValue
-
-    if (patch.unit !== undefined) {
-      setUnit(patch.unit)
-    }
-
-    // Convert the user-entered kcal value to kcal/ml for storage.
-    const nextKcalPerMl = toKcalPerMl(nextKcalValue, nextUnit)
+    const nextKcalValue = patch.kcalValue ?? storedKcalPerMl
 
     saveConfig({
       useHighCalorie: nextEnabled,
-      kcalPerMl: nextKcalPerMl > 0 ? nextKcalPerMl : storedKcalPerMl,
+      kcalPerMl: nextKcalValue > 0 ? nextKcalValue : storedKcalPerMl,
     }).catch(() => {
       // Error tracked by hook.
     })
@@ -305,8 +289,7 @@ export function Feeding(): React.JSX.Element {
             weightKg={weightKg}
             feedsPerDay={feedsPerDay}
             enabled={useHighCalorie}
-            kcalValue={kcalDisplayValue}
-            unit={unit}
+            kcalValue={storedKcalPerMl}
             onChange={handleHighCalorieChange}
           />
         </>

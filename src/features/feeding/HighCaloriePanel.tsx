@@ -5,8 +5,8 @@
 // Logical CSS only (RTL-ready). No inline styles. Copy via t().
 
 import { t } from '../../i18n/t'
-import { calorieAdjustedRange, toKcalPerMl } from '../../lib/feeding/index'
-import type { KcalUnit, HighCalorieFeedingResult } from './types'
+import { calorieAdjustedRange } from '../../lib/feeding/index'
+import type { HighCalorieFeedingResult } from './types'
 import { Card } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
 
@@ -18,10 +18,9 @@ interface HighCaloriePanelProps {
   weightKg: number
   feedsPerDay: number
   enabled: boolean
-  /** The formula's calorie density entered by the user. 0 = empty / unset. */
+  /** The formula's calorie density in kcal/ml entered by the user. 0 = empty / unset. */
   kcalValue: number
-  unit: KcalUnit
-  onChange: (patch: { enabled?: boolean; kcalValue?: number; unit?: KcalUnit }) => void
+  onChange: (patch: { enabled?: boolean; kcalValue?: number }) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -99,72 +98,6 @@ function HighCalorieToggle({ checked, onToggle }: ToggleProps): React.JSX.Elemen
 }
 
 // ---------------------------------------------------------------------------
-// Unit selector
-// ---------------------------------------------------------------------------
-
-interface UnitSelectorProps {
-  unit: KcalUnit
-  onUnitChange: (unit: KcalUnit) => void
-}
-
-const UNIT_BUTTON_BASE = [
-  'inline-flex items-center justify-center',
-  'min-h-[44px] px-[var(--space-3)]',
-  'rounded-[var(--radius-sm)]',
-  'border',
-  'text-[var(--text-sm)] font-medium',
-  'cursor-pointer',
-  'transition-colors duration-[var(--duration-fast)]',
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)]',
-].join(' ')
-
-const UNIT_BUTTON_ACTIVE = [
-  'bg-[var(--color-primary)]',
-  'border-[var(--color-primary)]',
-  'text-[var(--color-on-primary)]',
-].join(' ')
-
-const UNIT_BUTTON_INACTIVE = [
-  'bg-[var(--color-surface)]',
-  'border-[var(--color-border)]',
-  'text-[var(--color-foreground)]',
-  'hover:bg-[var(--color-muted)]',
-].join(' ')
-
-function UnitSelector({ unit, onUnitChange }: UnitSelectorProps): React.JSX.Element {
-  return (
-    <div
-      role="group"
-      aria-label="Calorie unit"
-      className="inline-flex gap-[var(--space-1)]"
-    >
-      <button
-        type="button"
-        aria-pressed={unit === 'kcal/ml'}
-        onClick={() => onUnitChange('kcal/ml')}
-        className={[
-          UNIT_BUTTON_BASE,
-          unit === 'kcal/ml' ? UNIT_BUTTON_ACTIVE : UNIT_BUTTON_INACTIVE,
-        ].join(' ')}
-      >
-        {t('feeding.highCalorie.unitMl')}
-      </button>
-      <button
-        type="button"
-        aria-pressed={unit === 'kcal/oz'}
-        onClick={() => onUnitChange('kcal/oz')}
-        className={[
-          UNIT_BUTTON_BASE,
-          unit === 'kcal/oz' ? UNIT_BUTTON_ACTIVE : UNIT_BUTTON_INACTIVE,
-        ].join(' ')}
-      >
-        {t('feeding.highCalorie.unitOz')}
-      </button>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
 // Results display
 // ---------------------------------------------------------------------------
 
@@ -173,12 +106,14 @@ interface ResultsProps {
 }
 
 function HighCalorieResults({ result }: ResultsProps): React.JSX.Element {
-  const { calorieTarget, adjustedDaily } = result
+  const { calorieTarget, adjustedDaily, adjustedPerFeed } = result
 
   const minKcal = roundKcal(calorieTarget.minKcal)
   const maxKcal = roundKcal(calorieTarget.maxKcal)
-  const minMl = roundMl(adjustedDaily.minMl)
-  const maxMl = roundMl(adjustedDaily.maxMl)
+  const minDailyMl = roundMl(adjustedDaily.minMl)
+  const maxDailyMl = roundMl(adjustedDaily.maxMl)
+  const minPerFeedMl = roundMl(adjustedPerFeed.minMl)
+  const maxPerFeedMl = roundMl(adjustedPerFeed.maxMl)
 
   return (
     <div className="flex flex-col gap-[var(--space-3)]">
@@ -198,7 +133,17 @@ function HighCalorieResults({ result }: ResultsProps): React.JSX.Element {
           {t('feeding.highCalorie.adjustedRange')}
         </span>
         <span className="text-[var(--text-body-lg)] font-medium text-[var(--color-foreground)]">
-          {minMl}–{maxMl} {t('feeding.mlPerDay')}
+          {minDailyMl}–{maxDailyMl} {t('feeding.mlPerDay')}
+        </span>
+      </div>
+
+      {/* Adjusted per-feed volume */}
+      <div className="flex flex-col gap-[var(--space-1)]">
+        <span className="text-[var(--text-sm)] font-medium text-[var(--color-text-muted)]">
+          {t('feeding.perFeed')}
+        </span>
+        <span className="text-[var(--text-body-lg)] font-medium text-[var(--color-foreground)]">
+          {minPerFeedMl}–{maxPerFeedMl} {t('feeding.ml')}
         </span>
       </div>
 
@@ -217,15 +162,14 @@ function HighCalorieResults({ result }: ResultsProps): React.JSX.Element {
 /**
  * HighCaloriePanel — controlled component for high-calorie / special formula mode.
  *
- * Renders a toggle and, when enabled, a calorie density input with unit selector
- * plus the calorie-adjusted daily volume results announced via aria-live.
+ * Renders a toggle and, when enabled, a calorie density (kcal/ml) input
+ * plus the calorie-adjusted daily and per-feed volume results announced via aria-live.
  */
 export function HighCaloriePanel({
   weightKg,
   feedsPerDay,
   enabled,
   kcalValue,
-  unit,
   onChange,
 }: HighCaloriePanelProps): React.JSX.Element {
   // A value of 0 is treated as "not yet entered" (empty state).
@@ -233,15 +177,13 @@ export function HighCaloriePanel({
   const showError = enabled && !isValid
 
   // Compute result only when enabled and the input is valid.
+  // kcalValue is always in kcal/ml — no conversion needed.
   let result: HighCalorieFeedingResult | null = null
   if (enabled && isValid) {
-    const kcalPerMl = toKcalPerMl(kcalValue, unit)
-    if (isValidKcal(kcalPerMl)) {
-      try {
-        result = calorieAdjustedRange(weightKg, kcalPerMl, feedsPerDay)
-      } catch {
-        result = null
-      }
+    try {
+      result = calorieAdjustedRange(weightKg, kcalValue, feedsPerDay)
+    } catch {
+      result = null
     }
   }
 
@@ -253,10 +195,6 @@ export function HighCaloriePanel({
     const parsed = parseFloat(event.target.value)
     // 0 signals "empty / invalid" to the parent; NaN maps to 0 as well.
     onChange({ kcalValue: isNaN(parsed) || parsed < 0 ? 0 : parsed })
-  }
-
-  function handleUnitChange(nextUnit: KcalUnit): void {
-    onChange({ unit: nextUnit })
   }
 
   // Display value: show empty string when 0 (unset), otherwise show the number.
@@ -271,7 +209,7 @@ export function HighCaloriePanel({
         {/* Expanded controls — only shown when enabled */}
         {enabled && (
           <div className="flex flex-col gap-[var(--space-4)]">
-            {/* Input row: calorie field + unit selector */}
+            {/* Input row: calorie density field with static unit hint */}
             <div className="flex items-end gap-[var(--space-3)]">
               <div className="flex-1">
                 <Input
@@ -286,9 +224,16 @@ export function HighCaloriePanel({
                   error={showError ? t('feeding.highCalorie.kcalError') : undefined}
                 />
               </div>
-              <div className="pb-[2px]">
-                <UnitSelector unit={unit} onUnitChange={handleUnitChange} />
-              </div>
+              <span
+                className={[
+                  'pb-[var(--space-2)]',
+                  'text-[var(--text-sm)] font-medium',
+                  'text-[var(--color-text-muted)]',
+                  'whitespace-nowrap',
+                ].join(' ')}
+              >
+                {t('feeding.highCalorie.unitMl')}
+              </span>
             </div>
 
             {/* Results — aria-live so changes announce to screen readers */}
