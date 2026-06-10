@@ -200,6 +200,13 @@ As a parent already tracking in another app, I want to import my baby's weights 
 - [ ] A non–Nara-Baby file is rejected with a calm, plain-language message
 - [ ] The import never alters the child's profile
 
+**WHO-9** · Should
+As a parent, I want the weight chart to focus on my baby's recent data so that small but important week-to-week changes are easy to see, instead of being squashed into the full 0–24 month range.
+- [ ] The weight chart defaults to a focused window around the baby's data (not the empty full range), with the Y-axis fit to the visible data so small changes are legible
+- [ ] A time-range control (`1mo · 3mo · 6mo · All`) lets the parent widen or narrow the visible age window
+- [ ] Nearby WHO percentile lines remain visible for context within the focused view
+- [ ] Works on a phone with no gestures required; the accessible fallback table is unaffected
+
 ---
 
 ### Epic: Feeding Calculator

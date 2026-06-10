@@ -145,6 +145,12 @@ switcher + account live here — leave a clearly-commented slot.)
 
 ---
 
+### Growth — Weight chart focus + time-range zoom (WHO-9)
+**Problem:** the full 0–24mo × full-weight frame squashes the baby's small week-to-week changes.
+**Control:** a segmented `1mo · 3mo · 6mo · All` toggle near the weight chart (radio-group semantics, ≥44×44px, active = `--color-primary` + non-color cue, copy via `t()`). Default **3mo**.
+**Auto-fit:** X (age) domain = a focused window anchored to the baby's data — `1/3/6mo` end at the latest measurement and span that many months; `All` = the full data span (never the empty 0–24 frame). Y (kg) domain fits the baby's points in the window + padding, with a **minimum span** so a single/flat point isn't a hairline. Recharts numeric axes clip the WHO curves to the domain, so nearby percentile lines stay visible for context.
+**A11y/mobile:** no gestures needed; the accessible fallback table is unchanged; toggle keyboard-operable with visible focus.
+
 ### Growth — Z-score trajectory view (WHO-7)
 **Component:** `ZScoreChart` (toggled in, alongside `WeightChart`)
 **Trigger:** a segmented `Weight | Z-score` control near the chart header, shown only when entries exist; default **Weight**.

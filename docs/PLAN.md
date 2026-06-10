@@ -300,6 +300,19 @@ graph LR
 
 ---
 
+### M2-14 · Weight chart focus + time-range zoom · S-M — PRD: WHO-9
+*Added post-MVP. Epic: WHO Weight Tracking. Approach: smart auto-fit default + a time-range toggle (no gesture zoom, no new dependency).*
+**Owns:** `src/features/growth/WeightChart.tsx`, `src/features/growth/WeightChart.test.tsx`, `src/i18n/copy/en.ts`
+**Reads:** `src/lib/who/index.ts`, `src/lib/growth/age.ts`, `design-system/MASTER.md`, `docs/ui-blueprints.md` (Growth chart)
+**Context:** The weight chart squashes the baby's data into the full 0–24mo × full-weight frame, hiding small important changes. Add (1) **auto-fit**: constrain the chart's X (age) domain to a focused window and set the Y (kg) domain to fit the baby's points in that window (+ padding, with a minimum span so a single/flat point isn't a hairline) — Recharts numeric axes clip the curves automatically, so nearby percentile lines still show for context; and (2) a **time-range segmented control** `1mo · 3mo · 6mo · All` (radio-group a11y, ≥44px, tokens, logical CSS) that sets the window: `1/3/6mo` = ending at the latest measurement, that many months wide; `All` = the full data span. Default `3mo`. Window anchors to the baby's data (never the empty full range). The accessible fallback table is unchanged. Keep `aria-hidden` on the chart; the toggle uses `t()`.
+**Done when:**
+- [ ] Range toggle renders (1mo/3mo/6mo/All), default 3mo; changing it changes the visible age window
+- [ ] Y-axis fits the baby's visible points (small changes legible); min span enforced; nearby percentile lines still visible
+- [ ] Domain math unit-tested (window bounds per range; Y fit incl. single-point and flat cases)
+- [ ] `npm run type-check`, `npm run test`, `npm run lint`, `npm run build` all pass
+
+---
+
 ## Milestone 3 — Feeding Calculator
 *Goal: a parent enters weight → daily ml range + per-feed amount; high-calorie mode delivers a calorie-matched (lower) volume.*
 
