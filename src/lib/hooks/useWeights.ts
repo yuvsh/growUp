@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { repository } from '../../data/repository/index.js';
+import { useRepository } from '../../data/repository/useRepository.js';
 import type { UpdateWeightEntryInput } from '../../data/repository/index.js';
 import { useAuth } from '../../auth/AuthContext.js';
 import { weightEntrySchema } from '../../types/schemas.js';
@@ -104,6 +104,8 @@ function normaliseError(err: unknown): Error {
  */
 export function useWeights(childId: string | null): UseWeightsResult {
   const { user } = useAuth();
+  const repository = useRepository();
+  const ownerId = user?.id ?? null;
   const [weights, setWeights] = useState<WeightEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
@@ -140,7 +142,7 @@ export function useWeights(childId: string | null): UseWeightsResult {
     return () => {
       cancelled = true;
     };
-  }, [childId, reloadCounter]);
+  }, [childId, reloadCounter, repository]);
 
   // ---- Mutations -----------------------------------------------------------
 
@@ -150,6 +152,11 @@ export function useWeights(childId: string | null): UseWeightsResult {
         const noChildError = new Error('Cannot add weight: no child selected');
         setError(noChildError);
         throw noChildError;
+      }
+      if (ownerId === null) {
+        const noOwnerError = new Error('Cannot add weight: no signed-in user');
+        setError(noOwnerError);
+        throw noOwnerError;
       }
 
       setError(null);
@@ -161,7 +168,7 @@ export function useWeights(childId: string | null): UseWeightsResult {
       const candidate = {
         id: 'pending',
         childId,
-        ownerId: user.id,
+        ownerId,
         dateMeasured: input.dateMeasured,
         weightGrams: input.weightGrams,
         createdAt: now,
@@ -180,7 +187,7 @@ export function useWeights(childId: string | null): UseWeightsResult {
       try {
         const created = await repository.weights.create({
           childId,
-          ownerId: user.id,
+          ownerId,
           dateMeasured: input.dateMeasured,
           weightGrams: input.weightGrams,
         });
@@ -192,7 +199,7 @@ export function useWeights(childId: string | null): UseWeightsResult {
         throw normalised;
       }
     },
-    [childId, user.id],
+    [childId, ownerId, repository],
   );
 
   const editWeight = useCallback(
@@ -210,20 +217,23 @@ export function useWeights(childId: string | null): UseWeightsResult {
         throw normalised;
       }
     },
-    [],
+    [repository],
   );
 
-  const deleteWeight = useCallback(async (id: string): Promise<void> => {
-    setError(null);
-    try {
-      await repository.weights.delete(id);
-      setWeights((prev) => prev.filter((w) => w.id !== id));
-    } catch (err: unknown) {
-      const normalised = normaliseError(err);
-      setError(normalised);
-      throw normalised;
-    }
-  }, []);
+  const deleteWeight = useCallback(
+    async (id: string): Promise<void> => {
+      setError(null);
+      try {
+        await repository.weights.delete(id);
+        setWeights((prev) => prev.filter((w) => w.id !== id));
+      } catch (err: unknown) {
+        const normalised = normaliseError(err);
+        setError(normalised);
+        throw normalised;
+      }
+    },
+    [repository],
+  );
 
   const reload = useCallback((): void => {
     setReloadCounter((n) => n + 1);

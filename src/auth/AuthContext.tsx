@@ -1,4 +1,21 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import {
+  getSupabaseClient,
+  isSupabaseConfigured,
+} from '../lib/supabase/client.js';
+import {
+  getStorageMode,
+  setStorageMode,
+  type StorageMode,
+} from '../lib/storageMode.js';
 
 // ---------------------------------------------------------------------------
 // Storage key for the stable anonymous user id
@@ -7,17 +24,40 @@ import { createContext, useContext, useState, type ReactNode } from 'react';
 const ANON_USER_ID_KEY = 'growup:anonUserId';
 
 // ---------------------------------------------------------------------------
-// Types — the swap point: in a future phase, `isAnonymous` becomes optional
-// and `User` can carry email/session data. Components never need to change.
+// Types
+//
+// `user` stays backward-compatible: `{ id, isAnonymous }` is always present so
+// existing consumers (RootRedirect, hooks) keep working. `email` is additive
+// and only set for a signed-in remote user.
 // ---------------------------------------------------------------------------
 
-interface AnonymousUser {
+interface EffectiveUser {
   id: string;
-  isAnonymous: true;
+  isAnonymous: boolean;
+  email?: string | null;
 }
 
+/**
+ * High-level auth state derived from the storage mode + the Supabase session:
+ * - `loading`            — resolving the initial Supabase session (remote only)
+ * - `local`              — anonymous local mode, no remote calls
+ * - `remote-signed-in`   — remote mode with an active Supabase session
+ * - `remote-signed-out`  — remote mode but no session (sign-in required)
+ */
+type AuthStatus =
+  | 'loading'
+  | 'local'
+  | 'remote-signed-in'
+  | 'remote-signed-out';
+
 interface AuthContextValue {
-  user: AnonymousUser;
+  /** Effective user, or null in remote mode while signed out. */
+  user: EffectiveUser | null;
+  status: AuthStatus;
+  mode: StorageMode;
+  signInWithGoogle: () => Promise<void>;
+  signOut: () => Promise<void>;
+  setMode: (mode: StorageMode) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -27,7 +67,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 // ---------------------------------------------------------------------------
-// Provider
+// Helpers
 // ---------------------------------------------------------------------------
 
 function getOrCreateAnonUserId(): string {
@@ -40,21 +80,138 @@ function getOrCreateAnonUserId(): string {
   return newId;
 }
 
+// OAuth redirect target — a dedicated callback route restores the session.
+const AUTH_CALLBACK_PATH = '/auth/callback';
+
+// ---------------------------------------------------------------------------
+// Provider
+// ---------------------------------------------------------------------------
+
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 export function AuthProvider({ children }: AuthProviderProps): React.JSX.Element {
-  const [user] = useState<AnonymousUser>(() => ({
-    id: getOrCreateAnonUserId(),
-    isAnonymous: true,
-  }));
+  const [anonUserId] = useState<string>(() => getOrCreateAnonUserId());
+  const [mode, setModeState] = useState<StorageMode>(() => getStorageMode());
+  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
+  // Only remote mode with a configured client needs to resolve a session; for
+  // local-only users there is nothing async to wait for.
+  const [loading, setLoading] = useState<boolean>(() => isSupabaseConfigured());
 
-  return (
-    <AuthContext.Provider value={{ user }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  // ---- Supabase session: read once + subscribe to changes ------------------
+  // Guarded so local-only users (no env) never touch the Supabase client.
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const client = getSupabaseClient();
+
+    client.auth
+      .getSession()
+      .then(({ data }) => {
+        if (cancelled) return;
+        setSupabaseUser(data.session?.user ?? null);
+        setLoading(false);
+      })
+      .catch(() => {
+        // Failing to resolve the session must not crash the app; treat as
+        // signed-out and stop loading so remote mode prompts for sign-in.
+        if (cancelled) return;
+        setSupabaseUser(null);
+        setLoading(false);
+      });
+
+    const {
+      data: { subscription },
+    } = client.auth.onAuthStateChange((_event, session) => {
+      setSupabaseUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // ---- Actions -------------------------------------------------------------
+
+  const signInWithGoogle = useCallback(async (): Promise<void> => {
+    const { error } = await getSupabaseClient().auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}${AUTH_CALLBACK_PATH}`,
+      },
+    });
+    if (error !== null) {
+      throw error;
+    }
+  }, []);
+
+  const signOut = useCallback(async (): Promise<void> => {
+    const { error } = await getSupabaseClient().auth.signOut();
+    if (error !== null) {
+      throw error;
+    }
+  }, []);
+
+  const setMode = useCallback((nextMode: StorageMode): void => {
+    setStorageMode(nextMode);
+    setModeState(nextMode);
+  }, []);
+
+  // ---- Derived effective identity + status ---------------------------------
+
+  const status = deriveStatus(mode, loading, supabaseUser);
+  const user = deriveUser(mode, anonUserId, supabaseUser);
+
+  const value: AuthContextValue = {
+    user,
+    status,
+    mode,
+    signInWithGoogle,
+    signOut,
+    setMode,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+function deriveStatus(
+  mode: StorageMode,
+  loading: boolean,
+  supabaseUser: SupabaseUser | null,
+): AuthStatus {
+  if (mode === 'local') {
+    return 'local';
+  }
+  if (loading) {
+    return 'loading';
+  }
+  return supabaseUser !== null ? 'remote-signed-in' : 'remote-signed-out';
+}
+
+function deriveUser(
+  mode: StorageMode,
+  anonUserId: string,
+  supabaseUser: SupabaseUser | null,
+): EffectiveUser | null {
+  if (mode === 'local') {
+    return { id: anonUserId, isAnonymous: true };
+  }
+  if (supabaseUser !== null) {
+    return {
+      id: supabaseUser.id,
+      isAnonymous: false,
+      email: supabaseUser.email ?? null,
+    };
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -68,3 +225,5 @@ export function useAuth(): AuthContextValue {
   }
   return context;
 }
+
+export type { AuthStatus, EffectiveUser };

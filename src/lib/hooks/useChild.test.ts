@@ -4,23 +4,25 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import type { Child } from '../../types/index.js';
 
 // ---------------------------------------------------------------------------
-// Mock the repository module.
+// Mock the repository-routing hook so the hook under test gets a mock repo.
 // vi.mock is hoisted, so the factory must not reference outer variables.
 // We use vi.fn() inside the factory; then import the module to grab the fns.
 // ---------------------------------------------------------------------------
 
-vi.mock('../../data/repository/index.js', () => ({
-  repository: {
-    children: {
-      list: vi.fn(),
-      get: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    },
-    weights: {},
-    feedingConfig: {},
+const mockRepository = vi.hoisted(() => ({
+  children: {
+    list: vi.fn(),
+    get: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
   },
+  weights: {},
+  feedingConfig: {},
+}));
+
+vi.mock('../../data/repository/useRepository.js', () => ({
+  useRepository: () => mockRepository,
 }));
 
 // ---------------------------------------------------------------------------
@@ -30,7 +32,7 @@ vi.mock('../../data/repository/index.js', () => ({
 const OWNER_ID = 'owner-123';
 
 vi.mock('../../auth/AuthContext.js', () => ({
-  useAuth: () => ({ user: { id: OWNER_ID, isAnonymous: true } }),
+  useAuth: () => ({ user: { id: OWNER_ID, isAnonymous: true }, mode: 'local' }),
 }));
 
 // ---------------------------------------------------------------------------
@@ -38,8 +40,10 @@ vi.mock('../../auth/AuthContext.js', () => ({
 // We import the hook after mocks so it picks up mocked deps at module init.
 // ---------------------------------------------------------------------------
 
-import { repository } from '../../data/repository/index.js';
 import { useChild } from './useChild.js';
+
+// The hook under test receives `mockRepository` via the mocked useRepository.
+const repository = mockRepository;
 
 // Typed references to the mock functions for convenience in tests.
 const mockList = vi.mocked(repository.children.list);

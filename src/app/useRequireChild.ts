@@ -19,11 +19,21 @@ export function useRequireChild(): GuardState {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  const ownerId = user?.id ?? null;
+
   useEffect(() => {
+    if (ownerId === null) {
+      // No owner (remote mode, signed out) — there is no child to guard; send
+      // the user to onboarding where the storage/sign-in choice is made.
+      setState('redirecting');
+      void navigate('/onboarding', { replace: true });
+      return;
+    }
+
     let cancelled = false;
 
     repository.children
-      .list(user.id)
+      .list(ownerId)
       .then((children) => {
         if (cancelled) return;
         if (children.length === 0) {
@@ -41,7 +51,7 @@ export function useRequireChild(): GuardState {
     return () => {
       cancelled = true;
     };
-  }, [user.id, navigate]);
+  }, [ownerId, navigate]);
 
   return state;
 }

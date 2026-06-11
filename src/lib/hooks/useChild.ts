@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { repository } from '../../data/repository/index.js';
+import { useRepository } from '../../data/repository/useRepository.js';
 import type { UpdateChildInput } from '../../data/repository/index.js';
 import { useAuth } from '../../auth/AuthContext.js';
 import type { Child, Sex } from '../../types/index.js';
@@ -38,6 +38,8 @@ interface UseChildResult {
  */
 export function useChild(): UseChildResult {
   const { user } = useAuth();
+  const repository = useRepository();
+  const ownerId = user?.id ?? null;
   const [child, setChild] = useState<Child | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
@@ -47,12 +49,20 @@ export function useChild(): UseChildResult {
   // ---- Fetch on mount / reload ---------------------------------------------
 
   useEffect(() => {
+    if (ownerId === null) {
+      // No owner yet (e.g. remote mode, signed out) — nothing to load.
+      setChild(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
 
     repository.children
-      .list(user.id)
+      .list(ownerId)
       .then((children) => {
         if (cancelled) return;
         setChild(children[0] ?? null);
@@ -69,16 +79,21 @@ export function useChild(): UseChildResult {
     return () => {
       cancelled = true;
     };
-  }, [user.id, reloadCounter]);
+  }, [ownerId, reloadCounter, repository]);
 
   // ---- Mutations -----------------------------------------------------------
 
   const createChild = useCallback(
     async (values: CreateChildValues): Promise<Child> => {
+      if (ownerId === null) {
+        const noOwnerError = new Error('Cannot create child: no signed-in user');
+        setError(noOwnerError);
+        throw noOwnerError;
+      }
       setError(null);
       try {
         const created = await repository.children.create({
-          ownerId: user.id,
+          ownerId,
           name: values.name,
           sex: values.sex,
           dateOfBirth: values.dateOfBirth,
@@ -91,7 +106,7 @@ export function useChild(): UseChildResult {
         throw normalised;
       }
     },
-    [user.id],
+    [ownerId, repository],
   );
 
   const updateChild = useCallback(
@@ -107,20 +122,23 @@ export function useChild(): UseChildResult {
         throw normalised;
       }
     },
-    [],
+    [repository],
   );
 
-  const deleteChild = useCallback(async (id: string): Promise<void> => {
-    setError(null);
-    try {
-      await repository.children.delete(id);
-      setChild(null);
-    } catch (err: unknown) {
-      const normalised = err instanceof Error ? err : new Error(String(err));
-      setError(normalised);
-      throw normalised;
-    }
-  }, []);
+  const deleteChild = useCallback(
+    async (id: string): Promise<void> => {
+      setError(null);
+      try {
+        await repository.children.delete(id);
+        setChild(null);
+      } catch (err: unknown) {
+        const normalised = err instanceof Error ? err : new Error(String(err));
+        setError(normalised);
+        throw normalised;
+      }
+    },
+    [repository],
+  );
 
   const reload = useCallback((): void => {
     setReloadCounter((n) => n + 1);

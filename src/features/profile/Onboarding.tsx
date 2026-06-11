@@ -19,15 +19,22 @@ type LoadState = 'checking' | 'ready';
 export function Onboarding(): React.JSX.Element {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const ownerId = user?.id ?? null;
   const [loadState, setLoadState] = useState<LoadState>('checking');
 
   // On mount: if a child already exists, redirect to /growth (defensive guard).
   // RootRedirect also handles "/" but this covers direct navigation to /onboarding.
   useEffect(() => {
+    if (ownerId === null) {
+      // No owner (remote mode, signed out) — show the welcome screen.
+      setLoadState('ready');
+      return;
+    }
+
     let cancelled = false;
 
     repository.children
-      .list(user.id)
+      .list(ownerId)
       .then((children) => {
         if (cancelled) return;
         if (children.length > 0) {
@@ -44,7 +51,7 @@ export function Onboarding(): React.JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [user.id, navigate]);
+  }, [ownerId, navigate]);
 
   if (loadState === 'checking') {
     return (

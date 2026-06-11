@@ -19,12 +19,19 @@ const containerStyle: React.CSSProperties = {
 export function RootRedirect(): React.JSX.Element {
   const [target, setTarget] = useState<RedirectTarget>('loading');
   const { user } = useAuth();
+  const ownerId = user?.id ?? null;
 
   useEffect(() => {
+    if (ownerId === null) {
+      // No owner (remote mode, signed out) — onboarding handles sign-in.
+      setTarget('/onboarding');
+      return;
+    }
+
     let cancelled = false;
 
     repository.children
-      .list(user.id)
+      .list(ownerId)
       .then((children) => {
         if (!cancelled) {
           setTarget(children.length > 0 ? '/growth' : '/onboarding');
@@ -38,7 +45,7 @@ export function RootRedirect(): React.JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [user.id]);
+  }, [ownerId]);
 
   if (target === 'loading') {
     return (
