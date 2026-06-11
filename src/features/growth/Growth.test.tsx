@@ -19,7 +19,21 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Growth } from './Growth';
+import { UiStateProvider } from '../../ui-state/UiStateContext';
 import type { Child, WeightEntry, Sex } from '../../types';
+
+// ---------------------------------------------------------------------------
+// Test helper: wraps Growth in the required UiStateProvider
+// (Growth calls useUiState() which requires UiStateProvider to be mounted)
+// ---------------------------------------------------------------------------
+
+function renderGrowth(): ReturnType<typeof render> {
+  return render(
+    <UiStateProvider>
+      <Growth />
+    </UiStateProvider>,
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Mock: useChild
@@ -49,7 +63,8 @@ vi.mock('../../lib/hooks/useWeights', () => ({
 // ---------------------------------------------------------------------------
 
 vi.mock('./WeightChart', () => ({
-  WeightChart: (): React.JSX.Element => (
+  // Accepts (and ignores) the new range + onRangeChange props added in APP-4.
+  WeightChart: (_props: unknown): React.JSX.Element => (
     <div data-testid="weight-chart">WeightChart</div>
   ),
 }));
@@ -208,64 +223,64 @@ describe('Growth screen', () => {
     });
 
     it('renders the child name in the header', () => {
-      render(<Growth />);
+      renderGrowth();
       expect(screen.getByRole('heading', { name: 'Baby Yuval' })).toBeInTheDocument();
     });
 
     it('renders the latest weight label in the header', () => {
-      render(<Growth />);
+      renderGrowth();
       expect(screen.getByLabelText('Latest weight')).toBeInTheDocument();
     });
 
     it('renders a formatted weight value for the latest entry', () => {
-      render(<Growth />);
+      renderGrowth();
       // Latest entry is ENTRY_B (June, newest date) — 6500 g = 6.500 kg
       expect(screen.getByText('6.500 kg')).toBeInTheDocument();
     });
 
     it('renders the percentile label in the header widget', () => {
-      render(<Growth />);
+      renderGrowth();
       // The header Latest weight widget has aria-label="Latest weight"; grab all matches
       const percentileLabels = screen.getAllByText(/Percentile:/);
       expect(percentileLabels.length).toBeGreaterThan(0);
     });
 
     it('renders the z-score label in the header widget', () => {
-      render(<Growth />);
+      renderGrowth();
       const zScoreLabels = screen.getAllByText(/Z-score:/);
       expect(zScoreLabels.length).toBeGreaterThan(0);
     });
 
     it('renders the WeightChart region', () => {
-      render(<Growth />);
+      renderGrowth();
       expect(screen.getByTestId('weight-chart')).toBeInTheDocument();
     });
 
     it('renders the ProjectionCard region (4-week outlook heading)', () => {
-      render(<Growth />);
+      renderGrowth();
       // ProjectionCard renders its own heading from t('growth.projection.title')
       expect(screen.getByText('4-week outlook')).toBeInTheDocument();
     });
 
     it('renders the InsightsList region (Insights heading)', () => {
-      render(<Growth />);
+      renderGrowth();
       expect(screen.getByRole('heading', { name: 'Insights' })).toBeInTheDocument();
     });
 
     it('renders the WeightHistoryList region (History heading)', () => {
-      render(<Growth />);
+      renderGrowth();
       expect(screen.getByRole('heading', { name: 'History' })).toBeInTheDocument();
     });
 
     it('renders the Add weight button', () => {
-      render(<Growth />);
+      renderGrowth();
       expect(
         screen.getByRole('button', { name: 'Add weight' }),
       ).toBeInTheDocument();
     });
 
     it('does NOT render the empty state', () => {
-      render(<Growth />);
+      renderGrowth();
       expect(
         screen.queryByText("Add your baby's first weight to see the chart"),
       ).not.toBeInTheDocument();
@@ -281,14 +296,14 @@ describe('Growth screen', () => {
     });
 
     it('renders the empty state title', () => {
-      render(<Growth />);
+      renderGrowth();
       expect(
         screen.getByText("Add your baby's first weight to see the chart"),
       ).toBeInTheDocument();
     });
 
     it('renders an Add weight CTA in the empty state', () => {
-      render(<Growth />);
+      renderGrowth();
       // EmptyState renders a button with this label
       expect(
         screen.getByRole('button', { name: /add weight/i }),
@@ -297,7 +312,7 @@ describe('Growth screen', () => {
 
     it('clicking the Add CTA opens the WeightForm in add mode', async () => {
       const user = userEvent.setup();
-      render(<Growth />);
+      renderGrowth();
 
       await user.click(screen.getByRole('button', { name: /add weight/i }));
 
@@ -310,7 +325,7 @@ describe('Growth screen', () => {
     });
 
     it('does NOT render content sections (chart / history / projection)', () => {
-      render(<Growth />);
+      renderGrowth();
       expect(screen.queryByTestId('weight-chart')).not.toBeInTheDocument();
       expect(screen.queryByRole('heading', { name: 'History' })).not.toBeInTheDocument();
     });
@@ -322,7 +337,7 @@ describe('Growth screen', () => {
   describe('loading', () => {
     it('renders a skeleton while weights are loading', () => {
       setupLoading();
-      render(<Growth />);
+      renderGrowth();
       // Skeleton renders aria-hidden elements; check the main has aria-busy
       const main = screen.getByRole('main', { hidden: true }) ?? screen.getByLabelText('Growth');
       expect(main).toBeInTheDocument();
@@ -340,7 +355,7 @@ describe('Growth screen', () => {
   describe('error', () => {
     it('renders the error title when weights fail to load', () => {
       setupError();
-      render(<Growth />);
+      renderGrowth();
       expect(
         screen.getByText("We couldn't load your measurements"),
       ).toBeInTheDocument();
@@ -348,14 +363,14 @@ describe('Growth screen', () => {
 
     it('renders a Try again button', () => {
       setupError();
-      render(<Growth />);
+      renderGrowth();
       expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
     });
 
     it('clicking Try again calls reload()', async () => {
       setupError();
       const user = userEvent.setup();
-      render(<Growth />);
+      renderGrowth();
 
       await user.click(screen.getByRole('button', { name: /try again/i }));
 
@@ -370,7 +385,7 @@ describe('Growth screen', () => {
     it('clicking an edit button in the history list opens WeightForm in edit mode', async () => {
       setupChildWithEntries();
       const user = userEvent.setup();
-      render(<Growth />);
+      renderGrowth();
 
       // WeightHistoryList renders edit buttons with this aria-label
       const editButtons = screen.getAllByRole('button', {
@@ -394,7 +409,7 @@ describe('Growth screen', () => {
       setupChildWithEntries([singleEntry]);
 
       const user = userEvent.setup();
-      render(<Growth />);
+      renderGrowth();
 
       const editButton = screen.getByRole('button', { name: /Edit weight entry/i });
       await user.click(editButton);
@@ -431,7 +446,7 @@ describe('Growth screen', () => {
         reload: vi.fn(),
       });
 
-      render(<Growth />);
+      renderGrowth();
       expect(screen.getByText('Add your baby to begin')).toBeInTheDocument();
     });
   });

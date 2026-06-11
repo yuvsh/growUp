@@ -300,6 +300,19 @@ graph LR
 
 ---
 
+### M2-14 · Weight chart focus + time-range zoom · S-M — PRD: WHO-9
+*Added post-MVP. Epic: WHO Weight Tracking. Approach: smart auto-fit default + a time-range toggle (no gesture zoom, no new dependency).*
+**Owns:** `src/features/growth/WeightChart.tsx`, `src/features/growth/WeightChart.test.tsx`, `src/i18n/copy/en.ts`
+**Reads:** `src/lib/who/index.ts`, `src/lib/growth/age.ts`, `design-system/MASTER.md`, `docs/ui-blueprints.md` (Growth chart)
+**Context:** The weight chart squashes the baby's data into the full 0–24mo × full-weight frame, hiding small important changes. Add (1) **auto-fit**: constrain the chart's X (age) domain to a focused window and set the Y (kg) domain to fit the baby's points in that window (+ padding, with a minimum span so a single/flat point isn't a hairline) — Recharts numeric axes clip the curves automatically, so nearby percentile lines still show for context; and (2) a **time-range segmented control** `1mo · 3mo · 6mo · All` (radio-group a11y, ≥44px, tokens, logical CSS) that sets the window: `1/3/6mo` = ending at the latest measurement, that many months wide; `All` = the full data span. Default `3mo`. Window anchors to the baby's data (never the empty full range). The accessible fallback table is unchanged. Keep `aria-hidden` on the chart; the toggle uses `t()`.
+**Done when:**
+- [ ] Range toggle renders (1mo/3mo/6mo/All), default 3mo; changing it changes the visible age window
+- [ ] Y-axis fits the baby's visible points (small changes legible); min span enforced; nearby percentile lines still visible
+- [ ] Domain math unit-tested (window bounds per range; Y fit incl. single-point and flat cases)
+- [ ] `npm run type-check`, `npm run test`, `npm run lint`, `npm run build` all pass
+
+---
+
 ## Milestone 3 — Feeding Calculator
 *Goal: a parent enters weight → daily ml range + per-feed amount; high-calorie mode delivers a calorie-matched (lower) volume.*
 
@@ -366,6 +379,19 @@ graph LR
 - [ ] Need-band math (`weight×120/200`) and within/below/above classification unit-tested at boundaries
 - [ ] Gauge + readout render with a weight + intake; block hidden when no weight
 - [ ] Intake input persists per child; all copy via `t()`; tokens + logical CSS; a11y (labelled input, color-not-alone, ≥44px)
+- [ ] `npm run type-check`, `npm run test`, `npm run lint`, `npm run build` all pass
+
+---
+
+### APP-4 · Persist UI view-state + scroll across tabs · S — PRD: APP-4
+*Added post-MVP. Epic: App Shell. The React equivalent of an Android ViewModel: hold ephemeral view state ABOVE the routed screens so it survives tab unmount/remount.*
+**Owns:** `src/ui-state/UiStateContext.tsx`, `src/ui-state/UiStateContext.test.tsx`, `src/app/App.tsx`, `src/app/PrimaryLayout.tsx`, `src/features/growth/Growth.tsx`, `src/features/growth/WeightChart.tsx` (+ its test), `src/features/growth/Growth.test.tsx`
+**Reads:** `react-router-dom` (`ScrollRestoration`), `src/lib/growth/chartWindow.ts` (`ChartRange`)
+**Context:** Two pieces. (1) **Scroll:** render `<ScrollRestoration getKey={(loc) => loc.pathname} />` in `PrimaryLayout` (it stays mounted across the 3 tab children), so each tab's scroll is restored on return. (2) **View state:** a `UiStateProvider` mounted in `App.tsx` OUTSIDE the `RouterProvider` (so it never unmounts) holding `growthChartView: 'weight' | 'zscore'` and `growthChartRange: ChartRange`, hydrated from + persisted to `localStorage` (key `growup:ui`, validated against the allowed values on read). `Growth` consumes `useUiState()` for the chart view, and lifts `WeightChart`'s `range` out of local state into the context (passes `range` + `onRangeChange` down as props). View-only — never touches child/weight data.
+**Done when:**
+- [ ] Switching tabs and returning restores scroll position per tab
+- [ ] Growth chart view + range persist across tab switches AND a full reload (localStorage)
+- [ ] `UiStateContext` unit-tested (hydrate/persist/validate); WeightChart range is prop-driven; tests updated
 - [ ] `npm run type-check`, `npm run test`, `npm run lint`, `npm run build` all pass
 
 ---

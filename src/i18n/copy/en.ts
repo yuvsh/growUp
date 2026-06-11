@@ -142,6 +142,14 @@ const en = {
       weight: 'Weight',
       zscore: 'Z-score',
     },
+    chartRange: {
+      label: 'Time range',
+      m1: '1 mo',
+      m3: '3 mo',
+      m6: '6 mo',
+      all: 'All',
+      full: '2 yr',
+    },
     import: {
       button: 'Import from Nara Baby',
       title: 'Import from Nara Baby',

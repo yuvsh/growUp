@@ -6,6 +6,7 @@ import { BottomTabs } from '../components/ui/bottom-tabs.js';
 import { MedicalDisclaimer } from '../components/ui/medical-disclaimer.js';
 import { LoadingSpinner } from '../components/ui/loading-spinner.js';
 import { useRequireChild } from './useRequireChild.js';
+import { useScrollMemory } from './useScrollMemory.js';
 
 const layoutStyle: React.CSSProperties = {
   display: 'flex',
@@ -27,6 +28,8 @@ const loadingContainerStyle: React.CSSProperties = {
 
 export function PrimaryLayout(): React.JSX.Element {
   const guardState = useRequireChild();
+  // Remember/restore scroll position per tab (async-content aware).
+  useScrollMemory();
 
   if (guardState === 'loading' || guardState === 'redirecting') {
     return (

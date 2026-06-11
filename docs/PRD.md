@@ -200,6 +200,13 @@ As a parent already tracking in another app, I want to import my baby's weights 
 - [ ] A non–Nara-Baby file is rejected with a calm, plain-language message
 - [ ] The import never alters the child's profile
 
+**WHO-9** · Should
+As a parent, I want the weight chart to focus on my baby's recent data so that small but important week-to-week changes are easy to see, instead of being squashed into the full 0–24 month range.
+- [ ] The weight chart defaults to a focused window around the baby's data (not the empty full range), with the Y-axis fit to the visible data so small changes are legible
+- [ ] A time-range control (`1mo · 3mo · 6mo · All`) lets the parent widen or narrow the visible age window
+- [ ] Nearby WHO percentile lines remain visible for context within the focused view
+- [ ] Works on a phone with no gestures required; the accessible fallback table is unaffected
+
 ---
 
 ### Epic: Feeding Calculator
@@ -276,6 +283,12 @@ As a parent, I want a clear, always-visible medical disclaimer, so that I unders
 - [ ] Non-dismissable disclaimer shown in onboarding and persistently (footer)
 - [ ] States the app is for tracking/information only, is not medical advice, and that FTT/IUGR require professional care
 - [ ] Written in warm, plain language
+
+**APP-4** · Should
+As a parent, I want the app to remember where I was when I switch between tabs, so that I don't lose my place or have to re-pick the chart view every time.
+- [ ] Scroll position is restored per tab when returning to it
+- [ ] The Growth chart's view (Weight / Z-score) and time range persist across tab switches and survive a reload
+- [ ] Persisted UI state never affects the baby's data; it's view-only preferences
 
 ---
 
