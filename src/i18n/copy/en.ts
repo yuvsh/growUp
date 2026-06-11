@@ -28,6 +28,23 @@ const en = {
     welcomeTitle: 'Welcome to GrowUp',
     welcomeBody:
       'Track your baby\'s growth and feeding with calm, reassuring insights — all in one place.',
+    storage: {
+      title: 'Where should your baby\'s data live?',
+      deviceTitle: 'Keep on this device',
+      deviceBody: 'Private. Stays on this phone, works offline, no account.',
+      syncTitle: 'Sync to my account',
+      syncBody:
+        'Backed up and on your other devices. Sign in with Google.',
+    },
+  },
+  auth: {
+    signInTitle: 'Sign in to continue',
+    signInBody:
+      'Sign in with your Google account to reach your baby\'s synced data.',
+    signInWithGoogle: 'Continue with Google',
+    signingIn: 'Signing in…',
+    signInError:
+      'We couldn\'t sign you in just now. Please try again — your data is safe.',
   },
   disclaimer: {
     body:
