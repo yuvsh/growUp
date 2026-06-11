@@ -31,3 +31,4 @@ coverage/
 
 # Keep Claude worktrees if present
 !.claude/worktrees
+.vercel
