@@ -80,6 +80,15 @@ function getOrCreateAnonUserId(): string {
   return newId;
 }
 
+/**
+ * Returns the stable anonymous local user id, creating one if it does not yet
+ * exist. Exposed so non-React callers (e.g. the remote→local migration) can
+ * target the same owner id the local repository uses.
+ */
+export function getLocalAnonUserId(): string {
+  return getOrCreateAnonUserId();
+}
+
 // OAuth redirect target — a dedicated callback route restores the session.
 const AUTH_CALLBACK_PATH = '/auth/callback';
 
@@ -226,4 +235,4 @@ export function useAuth(): AuthContextValue {
   return context;
 }
 
-export type { AuthStatus, EffectiveUser };
+export type { AuthStatus, EffectiveUser, AuthContextValue };

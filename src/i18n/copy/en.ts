@@ -49,6 +49,37 @@ const en = {
       error:
         'We couldn\'t upload everything just now. Your data is safe on this device — please try again.',
     },
+    settings: {
+      title: 'Storage & privacy',
+      modeLabel: 'Where your data lives',
+      modeLocal: 'On this device',
+      modeRemote: 'Synced — {email}',
+      switchToRemote: 'Sync to my account',
+      switchToLocal: 'Keep on this device only',
+      switchToLocalConfirm:
+        'Copy your synced data back to this device and stop syncing? Your cloud copy stays until you delete it.',
+      switchToLocalDone:
+        'Your data is now on this device. A copy is kept in the cloud until you delete it.',
+      switchError:
+        'We couldn\'t change your storage just now. Please try again — your data is safe.',
+      exportButton: 'Export my data',
+      exportSuccess: 'Your data has been exported.',
+      exportError:
+        'We couldn\'t export your data just now. Please try again.',
+      privacyNote:
+        'When synced, your data is stored securely in the cloud and only you can read it. In on-device mode it never leaves this phone.',
+    },
+    delete: {
+      button: 'Delete my synced data',
+      confirmTitle: 'Delete everything?',
+      confirmBody:
+        'This removes all your synced data from the cloud. It cannot be undone. This does not delete your Google sign-in.',
+      confirm: 'Delete everything',
+      keep: 'Keep',
+      success: 'Your synced data has been removed.',
+      error:
+        'We couldn\'t delete your data just now. Please try again.',
+    },
   },
   auth: {
     signInTitle: 'Sign in to continue',
