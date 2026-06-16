@@ -7,15 +7,60 @@
 //   /profile/child  → ChildForm screen      (no guard — reached from onboarding CTA too)
 //   /growth         → Growth screen         (needs child → PrimaryLayout guards it)
 //   /feeding        → Feeding screen        (needs child → PrimaryLayout guards it)
+//
+// Code-splitting: the heavy screens (Growth pulls in Recharts; every screen pulls
+// in the Supabase-backed repository/auth) are loaded lazily via React.lazy so the
+// initial bundle only ships the shell + RootRedirect. Each lazy element is wrapped
+// in a calm, centered Suspense fallback (LazyRoute). RootRedirect and PrimaryLayout
+// stay eager — they are tiny and always needed on first paint.
+import React, { Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { RootRedirect } from './RootRedirect.js';
-import { AuthCallback } from './AuthCallback.js';
 import { PrimaryLayout } from './PrimaryLayout.js';
-import { Onboarding } from '../features/profile/Onboarding.js';
-import { Growth } from '../features/growth/Growth.js';
-import { Feeding } from '../features/feeding/Feeding.js';
-import { Profile } from '../features/profile/Profile.js';
-import { ChildForm } from '../features/profile/ChildForm.js';
+import { LoadingSpinner } from '../components/ui/loading-spinner.js';
+
+// Named exports → map to a default export for React.lazy.
+const Onboarding = React.lazy(() =>
+  import('../features/profile/Onboarding.js').then((m) => ({
+    default: m.Onboarding,
+  })),
+);
+const ChildForm = React.lazy(() =>
+  import('../features/profile/ChildForm.js').then((m) => ({
+    default: m.ChildForm,
+  })),
+);
+const Profile = React.lazy(() =>
+  import('../features/profile/Profile.js').then((m) => ({
+    default: m.Profile,
+  })),
+);
+const Growth = React.lazy(() =>
+  import('../features/growth/Growth.js').then((m) => ({ default: m.Growth })),
+);
+const Feeding = React.lazy(() =>
+  import('../features/feeding/Feeding.js').then((m) => ({
+    default: m.Feeding,
+  })),
+);
+const AuthCallback = React.lazy(() =>
+  import('./AuthCallback.js').then((m) => ({ default: m.AuthCallback })),
+);
+
+/** Calm, centered fallback shown while a lazy route chunk loads. */
+function LazyRoute({ children }: { children: React.ReactNode }): React.JSX.Element {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-dvh items-center justify-center">
+          <LoadingSpinner size="lg" label="Loading" />
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
 
 export const router = createBrowserRouter([
   {
@@ -26,17 +71,29 @@ export const router = createBrowserRouter([
   {
     // OAuth callback — restores the Supabase session from the URL, then routes home
     path: '/auth/callback',
-    element: <AuthCallback />,
+    element: (
+      <LazyRoute>
+        <AuthCallback />
+      </LazyRoute>
+    ),
   },
   {
     // Onboarding — no tabs, no guard; shows block MedicalDisclaimer inside screen
     path: '/onboarding',
-    element: <Onboarding />,
+    element: (
+      <LazyRoute>
+        <Onboarding />
+      </LazyRoute>
+    ),
   },
   {
     // ChildForm — no guard; reachable from onboarding CTA and profile edit
     path: '/profile/child',
-    element: <ChildForm />,
+    element: (
+      <LazyRoute>
+        <ChildForm />
+      </LazyRoute>
+    ),
   },
   {
     // Primary screens — guarded (redirect to /onboarding if no child), with BottomTabs + disclaimer footer
@@ -44,15 +101,27 @@ export const router = createBrowserRouter([
     children: [
       {
         path: '/growth',
-        element: <Growth />,
+        element: (
+          <LazyRoute>
+            <Growth />
+          </LazyRoute>
+        ),
       },
       {
         path: '/feeding',
-        element: <Feeding />,
+        element: (
+          <LazyRoute>
+            <Feeding />
+          </LazyRoute>
+        ),
       },
       {
         path: '/profile',
-        element: <Profile />,
+        element: (
+          <LazyRoute>
+            <Profile />
+          </LazyRoute>
+        ),
       },
     ],
   },

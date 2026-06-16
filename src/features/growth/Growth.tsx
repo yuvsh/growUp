@@ -17,7 +17,7 @@
 // `reload()` to trigger a fresh fetch and sync both lists to the source of truth.
 // ---------------------------------------------------------------------------
 
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { useUiState } from '../../ui-state/UiStateContext';
 import { useChild } from '../../lib/hooks/useChild';
 import { useWeights } from '../../lib/hooks/useWeights';
@@ -29,7 +29,11 @@ import { EmptyState } from '../../components/ui/empty-state';
 import { ErrorState } from '../../components/ui/error-state';
 import { BelowThirdAlert } from './BelowThirdAlert';
 import { WeightChart } from './WeightChart';
-import { ZScoreChart } from './ZScoreChart';
+// ZScoreChart is only shown when the chart toggle is on "z-score". Lazy-load it so
+// its (Recharts-heavy) slice loads on demand rather than with the default view.
+const ZScoreChart = React.lazy(() =>
+  import('./ZScoreChart').then((m) => ({ default: m.ZScoreChart })),
+);
 import { ProjectionCard } from './ProjectionCard';
 import { InsightsList } from './InsightsList';
 import { WeightHistoryList } from './WeightHistoryList';
@@ -346,7 +350,9 @@ export function Growth(): React.JSX.Element {
               onRangeChange={setGrowthChartRange}
             />
           ) : (
-            <ZScoreChart entries={weights} sex={sex} dateOfBirth={dateOfBirth} />
+            <Suspense fallback={<Skeleton variant="full-page" />}>
+              <ZScoreChart entries={weights} sex={sex} dateOfBirth={dateOfBirth} />
+            </Suspense>
           )}
 
           {/* Section 4: ProjectionCard — velocity + 4-week forecast */}
