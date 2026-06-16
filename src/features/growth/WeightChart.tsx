@@ -18,6 +18,7 @@
  * Tailwind class strings.
  */
 
+import { useMemo } from 'react';
 import {
   LineChart,
   Line,
@@ -32,11 +33,14 @@ import { weightToZResult, lmsForAge, percentileWeight } from '../../lib/who';
 import { ageFromDob, formatAge, DAYS_PER_MONTH, MAX_AGE_DAYS } from '../../lib/growth/age';
 import type { AgeBreakdown } from '../../lib/growth/age';
 import { computeChartWindow } from '../../lib/growth/chartWindow';
+import { formatGramsAsKg, formatPercentilePercent } from '../../lib/growth/format';
 import { t } from '../../i18n/t';
 import type { WeightEntry, Sex } from '../../types';
 import { PERCENTILE_Z } from './types';
 import type { PercentileLabel } from './types';
 import type { ChartRange } from '../../lib/growth/chartWindow';
+import { GrowthFallbackTable } from './GrowthFallbackTable';
+import type { GrowthFallbackRow } from './GrowthFallbackTable';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -129,15 +133,6 @@ interface DerivedMeasurement {
   weightKg: number;
 }
 
-/** One row in the accessible fallback table. */
-interface FallbackRow {
-  dateMeasured: string;
-  ageLabel: string;
-  weightKg: string;
-  zScore: string;
-  percentile: string;
-}
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -146,16 +141,6 @@ interface FallbackRow {
 function round(value: number, dp: number): number {
   const factor = Math.pow(10, dp);
   return Math.round(value * factor) / factor;
-}
-
-/** Format a number as kg with 3 decimal places for display (e.g. 3.450 kg). */
-function formatKg(grams: number): string {
-  return (grams / 1000).toFixed(3);
-}
-
-/** Format a percentile to one decimal place with a % suffix. */
-function formatPercentile(p: number): string {
-  return `${round(p, 1)}%`;
 }
 
 // ---------------------------------------------------------------------------
@@ -181,20 +166,20 @@ export function WeightChart({
   // Computing ageFromDob plus the gram→kg / day→month conversions in one place
   // keeps the baby line, the curve-grid merge, and the fallback table in sync,
   // and avoids recomputing the same age three times per measurement.
-  const measurements: DerivedMeasurement[] = entries.map((entry) => {
-    const age = ageFromDob(dateOfBirth, entry.dateMeasured);
-    return {
-      entry,
-      age,
-      ageMonths: age.days / DAYS_PER_MONTH,
-      weightKg: entry.weightGrams / 1000,
-    };
-  });
-
-  // ---- Compute chart window from baby's data + selected range ------------
-  const win = computeChartWindow(
-    measurements.map((m) => ({ ageMonths: m.ageMonths, weightKg: m.weightKg })),
-    range,
+  // Depends only on entries + dateOfBirth — NOT on sex or range — so toggling
+  // the range or re-rendering for unrelated reasons never recomputes this.
+  const measurements: DerivedMeasurement[] = useMemo(
+    () =>
+      entries.map((entry) => {
+        const age = ageFromDob(dateOfBirth, entry.dateMeasured);
+        return {
+          entry,
+          age,
+          ageMonths: age.days / DAYS_PER_MONTH,
+          weightKg: entry.weightGrams / 1000,
+        };
+      }),
+    [entries, dateOfBirth],
   );
 
   // ---- Build ONE unified dataset shared by curves AND the baby line -------
@@ -203,50 +188,71 @@ export function WeightChart({
   // method) plus babyKg only on rows that are a real measurement. Sharing one
   // dataset means the tooltip at a baby point shows the real age + baby weight +
   // the percentile weights together — and no phantom baby points are invented.
-  const babyKgByDay = new Map<number, number>();
-  measurements.forEach((m) => {
-    babyKgByDay.set(m.age.days, m.weightKg);
-  });
+  // Depends on `measurements` (entries/dateOfBirth) and `sex` (WHO table
+  // selection) — NOT on `range`, so the range toggle never rebuilds the
+  // WHO curve grid or the baby points.
+  const chartData: CurveDataPoint[] = useMemo(() => {
+    const babyKgByDay = new Map<number, number>();
+    measurements.forEach((m) => {
+      babyKgByDay.set(m.age.days, m.weightKg);
+    });
 
-  const gridDays: number[] = [];
-  for (let d = 0; d <= MAX_AGE_DAYS; d += CURVE_STEP_DAYS) gridDays.push(d);
-  if (gridDays[gridDays.length - 1] !== MAX_AGE_DAYS) gridDays.push(MAX_AGE_DAYS);
+    const gridDays: number[] = [];
+    for (let d = 0; d <= MAX_AGE_DAYS; d += CURVE_STEP_DAYS) gridDays.push(d);
+    if (gridDays[gridDays.length - 1] !== MAX_AGE_DAYS) gridDays.push(MAX_AGE_DAYS);
 
-  const allDays = Array.from(new Set<number>([...gridDays, ...babyKgByDay.keys()])).sort(
-    (a, b) => a - b,
+    const allDays = Array.from(new Set<number>([...gridDays, ...babyKgByDay.keys()])).sort(
+      (a, b) => a - b,
+    );
+
+    return allDays.map((days) => {
+      const lms = lmsForAge(sex, days);
+      const babyKg = babyKgByDay.get(days);
+      const row: CurveDataPoint = {
+        ageMonths: round(days / DAYS_PER_MONTH, 2),
+        p3Kg: round(percentileWeight(PERCENTILE_Z.p3, lms) / 1000, 4),
+        p15Kg: round(percentileWeight(PERCENTILE_Z.p15, lms) / 1000, 4),
+        p50Kg: round(percentileWeight(PERCENTILE_Z.p50, lms) / 1000, 4),
+        p85Kg: round(percentileWeight(PERCENTILE_Z.p85, lms) / 1000, 4),
+        p97Kg: round(percentileWeight(PERCENTILE_Z.p97, lms) / 1000, 4),
+      };
+      if (babyKg !== undefined) row.babyKg = round(babyKg, 3);
+      return row;
+    });
+  }, [measurements, sex]);
+
+  // ---- Compute chart window from baby's data + selected range ------------
+  // This is the ONLY derivation that depends on `range` — it must re-run when
+  // the user toggles the time-range, while chartData/measurements stay put.
+  const win = useMemo(
+    () =>
+      computeChartWindow(
+        measurements.map((m) => ({ ageMonths: m.ageMonths, weightKg: m.weightKg })),
+        range,
+      ),
+    [measurements, range],
   );
-
-  const chartData: CurveDataPoint[] = allDays.map((days) => {
-    const lms = lmsForAge(sex, days);
-    const babyKg = babyKgByDay.get(days);
-    const row: CurveDataPoint = {
-      ageMonths: round(days / DAYS_PER_MONTH, 2),
-      p3Kg: round(percentileWeight(PERCENTILE_Z.p3, lms) / 1000, 4),
-      p15Kg: round(percentileWeight(PERCENTILE_Z.p15, lms) / 1000, 4),
-      p50Kg: round(percentileWeight(PERCENTILE_Z.p50, lms) / 1000, 4),
-      p85Kg: round(percentileWeight(PERCENTILE_Z.p85, lms) / 1000, 4),
-      p97Kg: round(percentileWeight(PERCENTILE_Z.p97, lms) / 1000, 4),
-    };
-    if (babyKg !== undefined) row.babyKg = round(babyKg, 3);
-    return row;
-  });
 
   // ---- Build fallback table rows -----------------------------------------
-  const sortedMeasurements = [...measurements].sort(
-    (a, b) =>
-      new Date(b.entry.dateMeasured).getTime() - new Date(a.entry.dateMeasured).getTime(),
-  );
+  // Depends on `measurements` and `sex` (WHO z/percentile lookup) — NOT range.
+  const fallbackRows: GrowthFallbackRow[] = useMemo(() => {
+    const sortedMeasurements = [...measurements].sort(
+      (a, b) =>
+        new Date(b.entry.dateMeasured).getTime() - new Date(a.entry.dateMeasured).getTime(),
+    );
 
-  const fallbackRows: FallbackRow[] = sortedMeasurements.map((m) => {
-    const { z, percentile } = weightToZResult(m.entry.weightGrams, sex, m.age.days);
-    return {
-      dateMeasured: m.entry.dateMeasured,
-      ageLabel: formatAge(m.age),
-      weightKg: formatKg(m.entry.weightGrams),
-      zScore: z.toFixed(2),
-      percentile: formatPercentile(percentile),
-    };
-  });
+    return sortedMeasurements.map((m) => {
+      const { z, percentile } = weightToZResult(m.entry.weightGrams, sex, m.age.days);
+      return {
+        key: m.entry.dateMeasured,
+        dateMeasured: m.entry.dateMeasured,
+        ageLabel: formatAge(m.age),
+        weightKgLabel: `${formatGramsAsKg(m.entry.weightGrams, 3)} kg`,
+        zScoreLabel: z.toFixed(2),
+        percentileLabel: formatPercentilePercent(percentile, 1),
+      };
+    });
+  }, [measurements, sex]);
 
   const hasEntries = entries.length > 0;
 
@@ -423,83 +429,20 @@ export function WeightChart({
       {/* Accessible fallback table — Priority-1 a11y: chart must never be    */}
       {/* the sole source of the data (MASTER.md).                            */}
       {/* ------------------------------------------------------------------ */}
-      <div className="mt-[var(--space-4)]">
-        <h3
-          className="text-[length:var(--text-sm)] font-semibold text-[var(--color-foreground)] mb-[var(--space-2)]"
-        >
-          {fallbackHeading}
-        </h3>
-
-        {fallbackRows.length === 0 ? (
+      {fallbackRows.length === 0 ? (
+        <div className="mt-[var(--space-4)]">
+          <h3
+            className="text-[length:var(--text-sm)] font-semibold text-[var(--color-foreground)] mb-[var(--space-2)]"
+          >
+            {fallbackHeading}
+          </h3>
           <p className="text-[length:var(--text-sm)] text-[var(--color-text-muted)]">
             {t('growth.empty.title')}
           </p>
-        ) : (
-          <table
-            className="w-full text-[length:var(--text-sm)] border-collapse"
-            aria-label={fallbackHeading}
-          >
-            <thead>
-              <tr className="border-b border-[var(--color-border)]">
-                <th
-                  scope="col"
-                  className="text-start py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-text-muted)] font-medium"
-                >
-                  {t('growth.zChart.colDate')}
-                </th>
-                <th
-                  scope="col"
-                  className="text-start py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-text-muted)] font-medium"
-                >
-                  {t('growth.zChart.colAge')}
-                </th>
-                <th
-                  scope="col"
-                  className="text-start py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-text-muted)] font-medium"
-                >
-                  {t('growth.zChart.colWeight')}
-                </th>
-                <th
-                  scope="col"
-                  className="text-start py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-text-muted)] font-medium"
-                >
-                  {t('growth.zChart.colZScore')}
-                </th>
-                <th
-                  scope="col"
-                  className="text-start py-[var(--space-2)] text-[var(--color-text-muted)] font-medium"
-                >
-                  {t('growth.zChart.colPercentile')}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {fallbackRows.map((row) => (
-                <tr
-                  key={row.dateMeasured}
-                  className="border-b border-[var(--color-border)] last:border-0"
-                >
-                  <td className="py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-foreground)]">
-                    {row.dateMeasured}
-                  </td>
-                  <td className="py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-foreground)]">
-                    {row.ageLabel}
-                  </td>
-                  <td className="py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-foreground)]">
-                    {row.weightKg} kg
-                  </td>
-                  <td className="py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-foreground)]">
-                    {row.zScore}
-                  </td>
-                  <td className="py-[var(--space-2)] text-[var(--color-foreground)]">
-                    {row.percentile}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+        </div>
+      ) : (
+        <GrowthFallbackTable heading={fallbackHeading} rows={fallbackRows} />
+      )}
     </section>
   );
 }

@@ -17,6 +17,7 @@
 
 import type { WeightEntry, Sex } from '../../types';
 import { projectGrowth } from '../../lib/growth/projection';
+import { formatGramsAsKg, formatGramsTrimmed, formatPercentile } from '../../lib/growth/format';
 import { Card } from '../../components/ui/card';
 import { t } from '../../i18n/t';
 
@@ -36,20 +37,12 @@ interface ProjectionCardProps {
 
 /** Format grams with one decimal, trimming trailing zero (e.g. 12.0 → "12"). */
 function formatGrams(grams: number): string {
-  const rounded = Math.round(grams * 10) / 10;
-  return Number.isInteger(rounded)
-    ? rounded.toFixed(0)
-    : rounded.toFixed(1);
+  return formatGramsTrimmed(grams, 1);
 }
 
 /** Convert grams to kg string with 2 decimal places (e.g. 4250 → "4.25"). */
 function gramsToKg(grams: number): string {
-  return (grams / 1000).toFixed(2);
-}
-
-/** Round percentile to 1 decimal place. */
-function formatPercentile(p: number): string {
-  return p.toFixed(1);
+  return formatGramsAsKg(grams, 2);
 }
 
 // ---------------------------------------------------------------------------
@@ -148,7 +141,7 @@ export function ProjectionCard({
         {/* Projected percentile */}
         <DataRow
           label={t('growth.projection.projectedPercentile')}
-          value={<>{formatPercentile(projectedPercentile)}th</>}
+          value={<>{formatPercentile(projectedPercentile, 1)}th</>}
         />
 
         {/* Gain needed — only shown when baby is below 3rd */}

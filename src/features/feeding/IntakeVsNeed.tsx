@@ -20,6 +20,7 @@ import { Card } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
 import { t } from '../../i18n/t'
 import { intakeNeed, classifyIntake } from '../../lib/feeding/index'
+import { roundMl } from '../../lib/feeding/format'
 import { ML_PER_KG_MIN, ML_PER_KG_TARGET, ML_PER_KG_MAX } from '../../lib/constants/feeding'
 
 // ---------------------------------------------------------------------------
@@ -37,11 +38,6 @@ interface IntakeVsNeedProps {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/** Round a ml value to the nearest integer for display. */
-function roundMl(value: number): number {
-  return Math.round(value)
-}
 
 /**
  * Compute the gauge scale maximum: round up to the nearest 50 ml above

@@ -17,6 +17,7 @@ import { useChild } from '../../lib/hooks/useChild'
 import { useWeights } from '../../lib/hooks/useWeights'
 import { useFeeding } from '../../lib/hooks/useFeeding'
 import { dailyVolumeRange, perFeed } from '../../lib/feeding/index'
+import { roundMl } from '../../lib/feeding/format'
 import { ageFromDob, formatAge } from '../../lib/growth/age'
 import { DEFAULT_FEEDS_PER_DAY, STANDARD_KCAL_PER_ML } from '../../lib/constants/feeding'
 import { Card } from '../../components/ui/card'
@@ -29,11 +30,6 @@ import { IntakeVsNeed } from './IntakeVsNeed'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/** Rounds a ml value to the nearest integer for display. */
-function roundMl(value: number): number {
-  return Math.round(value)
-}
 
 /** Returns true when a string represents a positive finite number. */
 function isValidWeightString(value: string): boolean {

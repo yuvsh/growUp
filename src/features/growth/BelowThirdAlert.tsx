@@ -17,6 +17,7 @@ import type { WeightEntry, Sex } from '../../types';
 import { weightToZResult, percentileWeight, lmsForAge } from '../../lib/who';
 import { PERCENTILE_Z } from './types';
 import { ageFromDob } from '../../lib/growth/age';
+import { formatPercentileTh } from '../../lib/growth/format';
 import { t } from '../../i18n/t';
 
 // ---------------------------------------------------------------------------
@@ -157,7 +158,7 @@ export function BelowThirdAlert({
           {/* Current percentile */}
           <div className="flex gap-[var(--space-2)]">
             <dt className="font-medium">{t('growth.alert.currentPercentile')}:</dt>
-            <dd>{percentile.toFixed(1)}th</dd>
+            <dd>{formatPercentileTh(percentile, 1)}</dd>
           </div>
 
           {/* Gram gap */}

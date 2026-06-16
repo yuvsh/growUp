@@ -6,6 +6,7 @@
 
 import { t } from '../../i18n/t'
 import { calorieAdjustedRange } from '../../lib/feeding/index'
+import { roundMl } from '../../lib/feeding/format'
 import type { HighCalorieFeedingResult } from './types'
 import { Card } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
@@ -26,11 +27,6 @@ interface HighCaloriePanelProps {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/** Round a ml value to 0 decimal places for display. */
-function roundMl(value: number): number {
-  return Math.round(value)
-}
 
 /** Round a kcal value to 1 decimal place for display. */
 function roundKcal(value: number): number {
