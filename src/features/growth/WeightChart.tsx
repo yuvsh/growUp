@@ -30,6 +30,7 @@ import {
 } from 'recharts';
 import { weightToZResult, lmsForAge, percentileWeight } from '../../lib/who';
 import { ageFromDob, formatAge } from '../../lib/growth/age';
+import type { AgeBreakdown } from '../../lib/growth/age';
 import { computeChartWindow } from '../../lib/growth/chartWindow';
 import { t } from '../../i18n/t';
 import type { WeightEntry, Sex } from '../../types';
@@ -116,12 +117,20 @@ interface CurveDataPoint {
   babyKg?: number;
 }
 
-/** A single point in the baby's exact measurement series. */
-interface BabyDataPoint {
-  /** Exact age in months (ageDays / 30.4375), NOT snapped to the grid. */
+/**
+ * A measurement with its age + kg derived once. Shared by the chart-window
+ * computation, the curve-grid merge, and the accessible fallback table so the
+ * entry→age/kg conversion lives in exactly one place.
+ */
+interface DerivedMeasurement {
+  /** The original weight entry. */
+  entry: WeightEntry;
+  /** Age breakdown at the measurement date. */
+  age: AgeBreakdown;
+  /** Exact age in months (age.days / 30.4375), NOT snapped to the grid. */
   ageMonths: number;
-  /** Baby's measured weight in kg. */
-  babyKg: number;
+  /** Measured weight in kg. */
+  weightKg: number;
 }
 
 /** One row in the accessible fallback table. */
@@ -172,18 +181,23 @@ export function WeightChart({
   const fallbackHeading = t('growth.chart.fallbackHeading');
   const rangeLegendLabel = t('growth.chartRange.label');
 
-  // ---- Build exact baby points (NO snapping) -----------------------------
-  // Each entry is mapped to its precise ageMonths value (ageDays / 30.4375).
-  // This is used for both the baby <Line> and the chart window computation,
-  // so small changes between close measurements remain distinct.
-  const exactBabyPoints: BabyDataPoint[] = entries.map((entry) => ({
-    ageMonths: ageFromDob(dateOfBirth, entry.dateMeasured).days / DAYS_PER_MONTH,
-    babyKg: entry.weightGrams / 1000,
-  }));
+  // ---- Derive each measurement's age + kg ONCE (shared everywhere) -------
+  // Computing ageFromDob plus the gram→kg / day→month conversions in one place
+  // keeps the baby line, the curve-grid merge, and the fallback table in sync,
+  // and avoids recomputing the same age three times per measurement.
+  const measurements: DerivedMeasurement[] = entries.map((entry) => {
+    const age = ageFromDob(dateOfBirth, entry.dateMeasured);
+    return {
+      entry,
+      age,
+      ageMonths: age.days / DAYS_PER_MONTH,
+      weightKg: entry.weightGrams / 1000,
+    };
+  });
 
   // ---- Compute chart window from baby's data + selected range ------------
   const win = computeChartWindow(
-    exactBabyPoints.map((p) => ({ ageMonths: p.ageMonths, weightKg: p.babyKg })),
+    measurements.map((m) => ({ ageMonths: m.ageMonths, weightKg: m.weightKg })),
     range,
   );
 
@@ -194,9 +208,8 @@ export function WeightChart({
   // dataset means the tooltip at a baby point shows the real age + baby weight +
   // the percentile weights together — and no phantom baby points are invented.
   const babyKgByDay = new Map<number, number>();
-  entries.forEach((entry) => {
-    const days = ageFromDob(dateOfBirth, entry.dateMeasured).days;
-    babyKgByDay.set(days, entry.weightGrams / 1000);
+  measurements.forEach((m) => {
+    babyKgByDay.set(m.age.days, m.weightKg);
   });
 
   const gridDays: number[] = [];
@@ -223,17 +236,17 @@ export function WeightChart({
   });
 
   // ---- Build fallback table rows -----------------------------------------
-  const sortedEntries = [...entries].sort(
-    (a, b) => new Date(b.dateMeasured).getTime() - new Date(a.dateMeasured).getTime(),
+  const sortedMeasurements = [...measurements].sort(
+    (a, b) =>
+      new Date(b.entry.dateMeasured).getTime() - new Date(a.entry.dateMeasured).getTime(),
   );
 
-  const fallbackRows: FallbackRow[] = sortedEntries.map((entry) => {
-    const ageBreakdown = ageFromDob(dateOfBirth, entry.dateMeasured);
-    const { z, percentile } = weightToZResult(entry.weightGrams, sex, ageBreakdown.days);
+  const fallbackRows: FallbackRow[] = sortedMeasurements.map((m) => {
+    const { z, percentile } = weightToZResult(m.entry.weightGrams, sex, m.age.days);
     return {
-      dateMeasured: entry.dateMeasured,
-      ageLabel: formatAge(ageBreakdown),
-      weightKg: formatKg(entry.weightGrams),
+      dateMeasured: m.entry.dateMeasured,
+      ageLabel: formatAge(m.age),
+      weightKg: formatKg(m.entry.weightGrams),
       zScore: z.toFixed(2),
       percentile: formatPercentile(percentile),
     };
