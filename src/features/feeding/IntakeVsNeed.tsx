@@ -59,6 +59,20 @@ function toPercent(value: number, scaleMax: number): number {
   return Math.min(100, Math.max(0, (value / scaleMax) * 100))
 }
 
+/** Mirrors the return type of {@link classifyIntake}. */
+type IntakeClassification = ReturnType<typeof classifyIntake>
+
+/**
+ * Status text color, keyed by intake classification.
+ * below → caution amber; within → success green; above → muted neutral.
+ * Color is NEVER the sole indicator — icon + text always accompany it.
+ */
+const STATUS_COLOR_CLASS: Record<IntakeClassification, string> = {
+  below: 'text-[var(--color-caution)]',
+  within: 'text-[var(--color-success)]',
+  above: 'text-[var(--color-text-muted)]',
+}
+
 // ---------------------------------------------------------------------------
 // Status icon helpers — SVG icons (no emoji, per design-system rules)
 // ---------------------------------------------------------------------------
@@ -336,15 +350,9 @@ export function IntakeVsNeed({
       : null
 
   // ---- Status styling ------------------------------------------------------
-  // below → caution amber; within → success green; above → muted neutral.
-  // Color is NEVER the sole indicator — icon + text always accompany it.
 
   const statusColorClass: string =
-    classification === 'below'
-      ? 'text-[var(--color-caution)]'
-      : classification === 'within'
-        ? 'text-[var(--color-success)]'
-        : 'text-[var(--color-text-muted)]'
+    classification !== null ? STATUS_COLOR_CLASS[classification] : ''
 
   // ---- Render --------------------------------------------------------------
 

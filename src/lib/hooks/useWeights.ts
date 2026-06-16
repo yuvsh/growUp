@@ -4,6 +4,8 @@ import type { UpdateWeightEntryInput } from '../../data/repository/index.js';
 import { useAuth } from '../../auth/AuthContext.js';
 import { weightEntrySchema } from '../../types/schemas.js';
 import type { WeightEntry } from '../../types/index.js';
+import { normaliseError } from './mutationError.js';
+import { MAX_AGE_DAYS } from '../growth/age.js';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -33,9 +35,6 @@ export interface WeightDateValidationResult {
 // ---------------------------------------------------------------------------
 // Pure helper — exported so the form can validate with the child's DOB
 // ---------------------------------------------------------------------------
-
-/** Maximum supported age window in days (0–24 months). */
-const MAX_AGE_DAYS = 730;
 
 /**
  * Validates whether a measurement date falls within the supported window for a
@@ -74,10 +73,6 @@ export function isWeightDateValid(
 
 function sortAscByDate(entries: WeightEntry[]): WeightEntry[] {
   return [...entries].sort((a, b) => a.dateMeasured.localeCompare(b.dateMeasured));
-}
-
-function normaliseError(err: unknown): Error {
-  return err instanceof Error ? err : new Error(String(err));
 }
 
 // ---------------------------------------------------------------------------

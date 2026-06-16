@@ -18,6 +18,7 @@ import { useWeights } from '../../lib/hooks/useWeights'
 import { useFeeding } from '../../lib/hooks/useFeeding'
 import { dailyVolumeRange, perFeed } from '../../lib/feeding/index'
 import { ageFromDob, formatAge } from '../../lib/growth/age'
+import { DEFAULT_FEEDS_PER_DAY, STANDARD_KCAL_PER_ML } from '../../lib/constants/feeding'
 import { Card } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
 import { EmptyState } from '../../components/ui/empty-state'
@@ -85,11 +86,11 @@ export function Feeding(): React.JSX.Element {
 
   // ---- Config values (with safe fallbacks) ---------------------------------
 
-  const feedsPerDay: number = config?.feedsPerDay ?? 8
+  const feedsPerDay: number = config?.feedsPerDay ?? DEFAULT_FEEDS_PER_DAY
   const useHighCalorie: boolean = config?.useHighCalorie ?? false
 
   // The stored kcalPerMl is used directly (always kcal/ml — no unit conversion).
-  const storedKcalPerMl: number = config?.kcalPerMl ?? 0.67
+  const storedKcalPerMl: number = config?.kcalPerMl ?? STANDARD_KCAL_PER_ML
 
   // ---- Computed ranges (only when weight is valid) -------------------------
 

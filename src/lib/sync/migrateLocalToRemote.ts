@@ -18,6 +18,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseClient } from '../supabase/client.js';
 import { localRepository } from '../../data/repository/index.js';
 import type { Child, WeightEntry, FeedingConfig } from '../../types/index.js';
+import { describeError } from './describeError.js';
 
 // ---------------------------------------------------------------------------
 // Table names (snake_case, as stored in Postgres — HLD §3)
@@ -128,16 +129,6 @@ function feedingConfigToRow(
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/** Extracts a short, log-safe message from an unknown thrown/returned error. */
-function describeError(label: string, cause: unknown): string {
-  if (cause instanceof Error) return `${label}: ${cause.message}`;
-  if (typeof cause === 'object' && cause !== null && 'message' in cause) {
-    const message = (cause as { message: unknown }).message;
-    if (typeof message === 'string') return `${label}: ${message}`;
-  }
-  return label;
-}
 
 /**
  * Upserts a single row keyed on `id`. Returns the captured error message on

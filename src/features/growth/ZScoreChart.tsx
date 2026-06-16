@@ -28,14 +28,12 @@ import type { TooltipProps } from 'recharts';
 import { deriveMeasurements } from '../../lib/growth/measurements';
 import type { DerivedMeasurement } from '../../lib/growth/measurements';
 import { t } from '../../i18n/t';
+import { DAYS_PER_MONTH } from '../../lib/growth/age';
 import type { WeightEntry, Sex } from '../../types';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
-/** Days-per-month divisor matching the WeightChart age-axis convention. */
-const DAYS_PER_MONTH = 30.4375;
 
 /** Stroke width for the baby's z-score line. */
 const LINE_STROKE_WIDTH = 2.5;

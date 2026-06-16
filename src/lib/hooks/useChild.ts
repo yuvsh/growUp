@@ -3,6 +3,7 @@ import { useRepository } from '../../data/repository/useRepository.js';
 import type { UpdateChildInput } from '../../data/repository/index.js';
 import { useAuth } from '../../auth/AuthContext.js';
 import type { Child, Sex } from '../../types/index.js';
+import { normaliseError } from './mutationError.js';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -70,8 +71,7 @@ export function useChild(): UseChildResult {
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        const normalised = err instanceof Error ? err : new Error(String(err));
-        setError(normalised);
+        setError(normaliseError(err));
         setLoading(false);
         // Do not re-throw: load failures must not propagate to the render cycle.
       });
@@ -101,7 +101,7 @@ export function useChild(): UseChildResult {
         setChild(created);
         return created;
       } catch (err: unknown) {
-        const normalised = err instanceof Error ? err : new Error(String(err));
+        const normalised = normaliseError(err);
         setError(normalised);
         throw normalised;
       }
@@ -117,7 +117,7 @@ export function useChild(): UseChildResult {
         setChild(updated);
         return updated;
       } catch (err: unknown) {
-        const normalised = err instanceof Error ? err : new Error(String(err));
+        const normalised = normaliseError(err);
         setError(normalised);
         throw normalised;
       }
@@ -132,7 +132,7 @@ export function useChild(): UseChildResult {
         await repository.children.delete(id);
         setChild(null);
       } catch (err: unknown) {
-        const normalised = err instanceof Error ? err : new Error(String(err));
+        const normalised = normaliseError(err);
         setError(normalised);
         throw normalised;
       }

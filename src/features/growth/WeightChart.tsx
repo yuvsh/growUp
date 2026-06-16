@@ -29,7 +29,7 @@ import {
   Legend,
 } from 'recharts';
 import { weightToZResult, lmsForAge, percentileWeight } from '../../lib/who';
-import { ageFromDob, formatAge } from '../../lib/growth/age';
+import { ageFromDob, formatAge, DAYS_PER_MONTH, MAX_AGE_DAYS } from '../../lib/growth/age';
 import type { AgeBreakdown } from '../../lib/growth/age';
 import { computeChartWindow } from '../../lib/growth/chartWindow';
 import { t } from '../../i18n/t';
@@ -42,11 +42,7 @@ import type { ChartRange } from '../../lib/growth/chartWindow';
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Days-per-month divisor for converting ageDays → months on the chart x-axis. */
-const DAYS_PER_MONTH = 30.4375;
-
 /** WHO data spans 0–730 days (0–24 months); curves are sampled every 14 days. */
-const MAX_AGE_DAYS = 730;
 const CURVE_STEP_DAYS = 14;
 
 /** Muted stroke colors for the 5 WHO percentile reference curves. */

@@ -71,6 +71,19 @@ function formatZ(z: number): string {
   return z.toFixed(2);
 }
 
+/**
+ * Returns the entry with the most recent `dateMeasured`, matching the
+ * tie-break of a stable descending sort by date: among equal dates, the
+ * entry that appears earliest in `entries` wins. Avoids sorting the full
+ * array just to read its first element.
+ */
+function findLatestEntry(entries: WeightEntry[]): WeightEntry | undefined {
+  return entries.reduce<WeightEntry | undefined>((latest, entry) => {
+    if (latest === undefined) return entry;
+    return entry.dateMeasured.localeCompare(latest.dateMeasured) > 0 ? entry : latest;
+  }, undefined);
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -130,10 +143,7 @@ export function Growth(): React.JSX.Element {
   }
 
   // ---- Derived values (only computed when we have entries) ---------------
-  const sortedEntries = [...weights].sort((a, b) =>
-    b.dateMeasured.localeCompare(a.dateMeasured),
-  );
-  const latestEntry = sortedEntries[0];
+  const latestEntry = findLatestEntry(weights);
 
   const ageBreakdown = ageFromDob(dateOfBirth);
   const ageLabel = formatAge(ageBreakdown);

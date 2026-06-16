@@ -41,6 +41,18 @@ type DotValue<T, Path extends string> =
 export type CopyKey = DotPaths<Copy>;
 
 // ---------------------------------------------------------------------------
+// Result cache — keyed by dot-path key
+// ---------------------------------------------------------------------------
+//
+// The app currently supports a single locale (see LocaleContext.tsx), so the
+// resolved value for a given key never changes between calls. Caching only
+// successful resolutions (never thrown errors) avoids re-parsing the same
+// dot-path on every render without changing the error-throwing contract.
+// If locale switching is introduced, this cache must be cleared (or keyed by
+// locale) when the active locale changes.
+const resultCache = new Map<string, string>();
+
+// ---------------------------------------------------------------------------
 // Resolver — walks the object by splitting the dot-path
 // ---------------------------------------------------------------------------
 
@@ -82,7 +94,13 @@ function resolve(obj: Record<string, unknown>, parts: string[]): string {
 // ---------------------------------------------------------------------------
 
 export function t<K extends CopyKey>(key: K): DotValue<Copy, K> {
+  const cached = resultCache.get(key);
+  if (cached !== undefined) {
+    return cached as DotValue<Copy, K>;
+  }
+
   const parts = key.split('.');
   const result = resolve(en as unknown as Record<string, unknown>, parts);
+  resultCache.set(key, result);
   return result as DotValue<Copy, K>;
 }

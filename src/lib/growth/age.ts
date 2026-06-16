@@ -4,6 +4,18 @@
  * no timezone conversion — to avoid DST / UTC drift bugs.
  */
 
+/**
+ * Average days per calendar month (365.25 / 12), used to convert a day-based
+ * age into fractional months for chart axes and WHO table lookups.
+ */
+export const DAYS_PER_MONTH = 30.4375;
+
+/**
+ * Maximum supported age window in days (0–24 months) — the WHO weight-for-age
+ * tables span exactly this range.
+ */
+export const MAX_AGE_DAYS = 730;
+
 export interface AgeBreakdown {
   /** Whole calendar days between DOB and asOf. */
   days: number;
