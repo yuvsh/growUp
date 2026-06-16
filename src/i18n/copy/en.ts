@@ -37,6 +37,19 @@ const en = {
         'Backed up and on your other devices. Sign in with Google.',
     },
   },
+  sync: {
+    migration: {
+      title: 'Upload your data to your account?',
+      body:
+        'We found {children} baby profile(s) and {weights} weight entries on this device. Uploading copies them to your account so they\'re backed up and on your other devices. Nothing is removed from this device.',
+      upload: 'Upload',
+      uploading: 'Uploading…',
+      notNow: 'Not now',
+      success: 'Uploaded {n} items to your account.',
+      error:
+        'We couldn\'t upload everything just now. Your data is safe on this device — please try again.',
+    },
+  },
   auth: {
     signInTitle: 'Sign in to continue',
     signInBody:
