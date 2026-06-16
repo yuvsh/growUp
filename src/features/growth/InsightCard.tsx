@@ -6,12 +6,14 @@
  *   - Badge tone maps from severity: caution → caution, info → muted
  *   - Icon + text — never color alone (Badge already enforces this)
  *   - Logical CSS only (no left/right — RTL-ready)
- *   - All section strings via t(); insight title/body come from the data
+ *   - All strings via t(); title/body/severity-label are resolved here from
+ *     `insight.kind`/`insight.severity` — never hardcoded.
  */
 
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
-import type { Insight } from './types';
+import { t } from '../../i18n/t';
+import type { Insight, InsightBodyParams } from './types';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -34,11 +36,19 @@ function severityToTone(severity: Insight['severity']): 'caution' | 'muted' {
 }
 
 /**
- * Maps an insight severity to a human-readable label shown in the Badge.
- * This ensures non-color-alone communication of the severity level.
+ * Substitutes `{token}` placeholders in a copy string with values from
+ * `params`. Returns the copy unchanged when there are no params to apply —
+ * `t()` itself never interpolates, so this is the one spot that does.
  */
-function severityLabel(severity: Insight['severity']): string {
-  return severity === 'caution' ? 'Caution' : 'Info';
+function interpolate(copy: string, params: InsightBodyParams | undefined): string {
+  if (params === undefined) {
+    return copy;
+  }
+
+  return Object.entries(params).reduce(
+    (result, [key, value]) => result.replace(`{${key}}`, String(value)),
+    copy,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -47,24 +57,26 @@ function severityLabel(severity: Insight['severity']): string {
 
 export function InsightCard({ insight }: InsightCardProps): React.JSX.Element {
   const tone = severityToTone(insight.severity);
-  const label = severityLabel(insight.severity);
+  const severityLabel = t(`growth.insights.severity.${insight.severity}`);
+  const title = t(`growth.insights.${insight.kind}.title`);
+  const body = interpolate(t(`growth.insights.${insight.kind}.body`), insight.bodyParams);
 
   return (
     <Card>
       <div className="flex flex-col gap-[var(--space-2)]">
         {/* Badge — severity with icon + text (no color-alone) */}
         <div>
-          <Badge tone={tone}>{label}</Badge>
+          <Badge tone={tone}>{severityLabel}</Badge>
         </div>
 
         {/* Insight title — card heading level */}
         <p className="text-[var(--text-h3)] font-semibold text-[var(--color-foreground)] leading-snug">
-          {insight.title}
+          {title}
         </p>
 
         {/* Insight body — warm, calm explanation */}
         <p className="text-[var(--text-body)] text-[var(--color-text-muted)] leading-relaxed">
-          {insight.body}
+          {body}
         </p>
       </div>
     </Card>

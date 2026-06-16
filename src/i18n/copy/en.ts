@@ -185,6 +185,22 @@ const en = {
     insights: {
       title: 'Insights',
       empty: 'Add a couple of weights to unlock insights.',
+      severity: {
+        info: 'Info',
+        caution: 'Caution',
+      },
+      'weight-loss': {
+        title: 'Weight loss detected',
+        body: 'Your baby lost weight between two consecutive measurements. This can be normal shortly after birth but warrants attention if it continues.',
+      },
+      'slow-velocity': {
+        title: 'Slow weight gain',
+        body: 'Weight gain is below {threshold} g/day. Speak with your healthcare provider if this continues.',
+      },
+      'percentile-drop': {
+        title: 'Percentile dropping',
+        body: 'Your baby\'s weight percentile has fallen between measurements. A single drop may be normal, but a sustained trend is worth discussing with your doctor.',
+      },
     },
     weightForm: {
       titleAdd: 'Add weight',

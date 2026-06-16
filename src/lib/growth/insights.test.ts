@@ -109,7 +109,7 @@ describe('computeInsights', () => {
   });
 
   describe('insight shape', () => {
-    it('each insight has all required fields', () => {
+    it('each insight has all required fields and no hardcoded copy', () => {
       const droppingEntries = [
         entry('2024-03-01', 4800),
         entry('2024-03-02', 4780),
@@ -118,13 +118,40 @@ describe('computeInsights', () => {
       expect(insights.length).toBeGreaterThan(0);
       for (const insight of insights) {
         expect(typeof insight.id).toBe('string');
-        expect(typeof insight.kind).toBe('string');
+        expect(['weight-loss', 'slow-velocity', 'percentile-drop']).toContain(
+          insight.kind,
+        );
         expect(['info', 'caution']).toContain(insight.severity);
-        expect(typeof insight.title).toBe('string');
-        expect(insight.title.length).toBeGreaterThan(0);
-        expect(typeof insight.body).toBe('string');
-        expect(insight.body.length).toBeGreaterThan(0);
+        // Insights carry data only — title/body copy is resolved in the UI via t().
+        expect(insight).not.toHaveProperty('title');
+        expect(insight).not.toHaveProperty('body');
       }
+    });
+
+    it('slow-velocity insight carries the threshold via bodyParams (single source of truth)', () => {
+      const entries = [
+        entry('2024-03-01', 4800),
+        entry('2024-03-02', 4802),
+        entry('2024-03-03', 4804),
+      ];
+      const insights = computeInsights(entries, SEX, DOB);
+      const slowVelocity = insights.find((i) => i.kind === 'slow-velocity');
+      expect(slowVelocity).toBeDefined();
+      expect(slowVelocity?.bodyParams).toEqual({
+        threshold: SLOW_VELOCITY_THRESHOLD_G_PER_DAY,
+      });
+    });
+
+    it('weight-loss and percentile-drop insights have no bodyParams', () => {
+      const droppingEntries = [
+        entry('2024-03-01', 4800),
+        entry('2024-03-02', 4780),
+      ];
+      const insights = computeInsights(droppingEntries, SEX, DOB);
+      const weightLoss = insights.find((i) => i.kind === 'weight-loss');
+      const percentileDrop = insights.find((i) => i.kind === 'percentile-drop');
+      expect(weightLoss?.bodyParams).toBeUndefined();
+      expect(percentileDrop?.bodyParams).toBeUndefined();
     });
   });
 });
