@@ -1,45 +1,53 @@
-// Routing smoke tests (M0-4)
-// Tests the RootRedirect component directly: verifies it calls navigate to
-// /onboarding when no child exists, and to /growth when a child is stored.
+// Routing tests for RootRedirect — branches on auth status (SYNC-1/2).
+// Verifies: loading → spinner; local → /growth or /onboarding by child presence;
+// remote-signed-in → /growth or /profile/child; remote-signed-out → /onboarding.
 //
-// Strategy: render RootRedirect inside a MemoryRouter; mock the repository and
-// localStorage; assert that the correct navigation happens.
+// Strategy: render RootRedirect in a MemoryRouter; mock useAuth + useRepository.
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
-import { AuthProvider } from '../auth/AuthContext.js';
-import { LocaleProvider } from '../i18n/LocaleContext.js';
-import * as repositoryModule from '../data/repository/index.js';
+import { vi, beforeEach, describe, it, expect } from 'vitest';
+import type { AuthStatus } from '../auth/AuthContext.js';
 import type { Child } from '../types/index.js';
 import { RootRedirect } from './RootRedirect.js';
 
 // ---------------------------------------------------------------------------
-// In-memory storage (avoids Node 22+ localStorage.clear() issues)
+// Module mocks
 // ---------------------------------------------------------------------------
 
-function createMemoryStorage(): Storage {
-  const store = new Map<string, string>();
-  return {
-    get length() { return store.size; },
-    key: (index: number) => Array.from(store.keys())[index] ?? null,
-    getItem: (key: string) => store.get(key) ?? null,
-    setItem: (key: string, value: string) => { store.set(key, value); },
-    removeItem: (key: string) => { store.delete(key); },
-    clear: () => { store.clear(); },
-  };
+const mockListChildren = vi.fn<() => Promise<Child[]>>();
+
+vi.mock('../data/repository/useRepository', () => ({
+  useRepository: (): { children: { list: () => Promise<Child[]> } } => ({
+    children: {
+      list: (): Promise<Child[]> =>
+        (mockListChildren as () => Promise<Child[]>)(),
+    },
+  }),
+}));
+
+interface MockAuthState {
+  user: { id: string; isAnonymous: boolean } | null;
+  status: AuthStatus;
 }
+
+let mockAuthState: MockAuthState = {
+  user: { id: 'owner-1', isAnonymous: true },
+  status: 'local',
+};
+
+vi.mock('../auth/AuthContext', () => ({
+  useAuth: (): MockAuthState => mockAuthState,
+}));
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Displays the current pathname so we can assert on navigation. */
 function CurrentPath(): React.JSX.Element {
   const { pathname } = useLocation();
   return <div data-testid="current-path">{pathname}</div>;
 }
 
-/** A minimal valid Child fixture. */
 function makeChild(): Child {
   return {
     id: 'child-1',
@@ -52,30 +60,26 @@ function makeChild(): Child {
   };
 }
 
-function Providers({ children }: { children: React.ReactNode }): React.JSX.Element {
-  return (
-    <AuthProvider>
-      <LocaleProvider>{children}</LocaleProvider>
-    </AuthProvider>
-  );
-}
-
-/**
- * Renders the route tree in a MemoryRouter starting at "/".
- * Both /onboarding and /growth show a testid so assertions are deterministic.
- */
 function renderRootRoute(): void {
   render(
-    <Providers>
-      <MemoryRouter initialEntries={['/']}>
-        <Routes>
-          <Route path="/" element={<RootRedirect />} />
-          <Route path="/onboarding" element={<div data-testid="screen-onboarding">Onboarding</div>} />
-          <Route path="/growth" element={<div data-testid="screen-growth">Growth</div>} />
-          <Route path="*" element={<CurrentPath />} />
-        </Routes>
-      </MemoryRouter>
-    </Providers>,
+    <MemoryRouter initialEntries={['/']}>
+      <Routes>
+        <Route path="/" element={<RootRedirect />} />
+        <Route
+          path="/onboarding"
+          element={<div data-testid="screen-onboarding">Onboarding</div>}
+        />
+        <Route
+          path="/growth"
+          element={<div data-testid="screen-growth">Growth</div>}
+        />
+        <Route
+          path="/profile/child"
+          element={<div data-testid="screen-child">Child</div>}
+        />
+        <Route path="*" element={<CurrentPath />} />
+      </Routes>
+    </MemoryRouter>,
   );
 }
 
@@ -83,19 +87,17 @@ function renderRootRoute(): void {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('Root route redirect', () => {
+describe('RootRedirect — local mode', () => {
   beforeEach(() => {
-    vi.stubGlobal('localStorage', createMemoryStorage());
+    vi.clearAllMocks();
+    mockAuthState = {
+      user: { id: 'owner-1', isAnonymous: true },
+      status: 'local',
+    };
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
-  });
-
-  it('redirects to /onboarding when no child exists in the repository', async () => {
-    vi.spyOn(repositoryModule.repository.children, 'list').mockResolvedValue([]);
-
+  it('redirects to /onboarding when no child exists', async () => {
+    mockListChildren.mockResolvedValue([]);
     renderRootRoute();
 
     await waitFor(() => {
@@ -103,13 +105,72 @@ describe('Root route redirect', () => {
     });
   });
 
-  it('redirects to /growth when a child is present in the repository', async () => {
-    vi.spyOn(repositoryModule.repository.children, 'list').mockResolvedValue([makeChild()]);
-
+  it('redirects to /growth when a child is present', async () => {
+    mockListChildren.mockResolvedValue([makeChild()]);
     renderRootRoute();
 
     await waitFor(() => {
       expect(screen.getByTestId('screen-growth')).toBeInTheDocument();
     });
+  });
+});
+
+describe('RootRedirect — remote signed-in', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuthState = {
+      user: { id: 'remote-1', isAnonymous: false },
+      status: 'remote-signed-in',
+    };
+  });
+
+  it('redirects to /profile/child when the cloud is empty (first sign-in)', async () => {
+    mockListChildren.mockResolvedValue([]);
+    renderRootRoute();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('screen-child')).toBeInTheDocument();
+    });
+  });
+
+  it('redirects to /growth when a child already exists', async () => {
+    mockListChildren.mockResolvedValue([makeChild()]);
+    renderRootRoute();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('screen-growth')).toBeInTheDocument();
+    });
+  });
+});
+
+describe('RootRedirect — remote signed-out', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuthState = { user: null, status: 'remote-signed-out' };
+  });
+
+  it('redirects to /onboarding (sign-in view)', async () => {
+    renderRootRoute();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('screen-onboarding')).toBeInTheDocument();
+    });
+    expect(mockListChildren).not.toHaveBeenCalled();
+  });
+});
+
+describe('RootRedirect — loading', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuthState = { user: null, status: 'loading' };
+  });
+
+  it('shows a loading spinner while the session resolves', async () => {
+    renderRootRoute();
+
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('screen-onboarding')).not.toBeInTheDocument();
   });
 });

@@ -5,6 +5,7 @@ import { Outlet } from 'react-router-dom';
 import { BottomTabs } from '../components/ui/bottom-tabs.js';
 import { MedicalDisclaimer } from '../components/ui/medical-disclaimer.js';
 import { LoadingSpinner } from '../components/ui/loading-spinner.js';
+import { SyncUploadPrompt } from '../features/sync/SyncUploadPrompt.js';
 import { useRequireChild } from './useRequireChild.js';
 import { useScrollMemory } from './useScrollMemory.js';
 
@@ -46,6 +47,7 @@ export function PrimaryLayout(): React.JSX.Element {
       </div>
       <MedicalDisclaimer variant="footer" />
       <BottomTabs />
+      <SyncUploadPrompt />
     </div>
   );
 }

@@ -9,6 +9,7 @@
 //   /feeding        → Feeding screen        (needs child → PrimaryLayout guards it)
 import { createBrowserRouter } from 'react-router-dom';
 import { RootRedirect } from './RootRedirect.js';
+import { AuthCallback } from './AuthCallback.js';
 import { PrimaryLayout } from './PrimaryLayout.js';
 import { Onboarding } from '../features/profile/Onboarding.js';
 import { Growth } from '../features/growth/Growth.js';
@@ -21,6 +22,11 @@ export const router = createBrowserRouter([
     // Root redirect — checks repository; shows spinner while async check runs
     path: '/',
     element: <RootRedirect />,
+  },
+  {
+    // OAuth callback — restores the Supabase session from the URL, then routes home
+    path: '/auth/callback',
+    element: <AuthCallback />,
   },
   {
     // Onboarding — no tabs, no guard; shows block MedicalDisclaimer inside screen

@@ -41,6 +41,12 @@ vi.mock('../../lib/hooks/useChild', () => ({
   useChild: (): MockUseChildResult => mockUseChildState,
 }));
 
+// StoragePrivacy depends on AuthProvider/repository context; Profile's only
+// responsibility is to render it, so stub it out here.
+vi.mock('../settings/StoragePrivacy', () => ({
+  StoragePrivacy: (): React.JSX.Element => <div data-testid="storage-privacy" />,
+}));
+
 // ---------------------------------------------------------------------------
 // Fixture child
 // ---------------------------------------------------------------------------

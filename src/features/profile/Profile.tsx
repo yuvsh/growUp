@@ -15,6 +15,7 @@ import { Button } from '../../components/ui/button';
 import { EmptyState } from '../../components/ui/empty-state';
 import { ErrorState } from '../../components/ui/error-state';
 import { Skeleton } from '../../components/ui/skeleton';
+import { StoragePrivacy } from '../settings/StoragePrivacy';
 import { t } from '../../i18n/t';
 
 // ---------------------------------------------------------------------------
@@ -127,13 +128,14 @@ export function Profile(): React.JSX.Element {
         </div>
       </Card>
 
+      {/* ---- Storage & privacy (PRD SYNC-5/6) ------------------------------ */}
+      <StoragePrivacy />
+
       {/*
-       * ---- FUTURE PLACEHOLDER: child switcher + account -------------------
-       * When multi-child support and account management are implemented,
-       * add the child switcher UI and account section here.
+       * ---- FUTURE PLACEHOLDER: child switcher -----------------------------
+       * When multi-child support is implemented, add the child switcher UI here.
        * Suggested slot:
        *   <ChildSwitcher />
-       *   <AccountSection />
        * -----------------------------------------------------------------------
        */}
 

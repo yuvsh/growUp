@@ -1,14 +1,14 @@
-// Tests for Onboarding screen (M1-6)
-// Blueprint: docs/ui-blueprints.md → "Onboarding / Welcome"
-// Design system: design-system/MASTER.md
+// Tests for the Onboarding screen — storage choice + Google sign-in (SYNC-1/2)
+// Blueprint: docs/PRD-remote-sync.md → SYNC-1/2; design-system/MASTER.md
 //
-// Mocks: repository (data/repository/index), AuthContext, react-router-dom (useNavigate)
+// Mocks: useRepository, AuthContext (useAuth), react-router-dom (useNavigate)
 
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Onboarding } from './Onboarding';
 import { t } from '../../i18n/t';
+import type { AuthStatus } from '../../auth/AuthContext';
 import type { Child } from '../../types/index';
 
 // ---------------------------------------------------------------------------
@@ -23,20 +23,41 @@ vi.mock('react-router-dom', () => ({
 
 const mockListChildren = vi.fn<() => Promise<Child[]>>();
 
-vi.mock('../../data/repository/index', () => ({
-  repository: {
+vi.mock('../../data/repository/useRepository', () => ({
+  useRepository: (): { children: { list: () => Promise<Child[]> } } => ({
     children: {
-      list: (_ownerId: string): Promise<Child[]> =>
+      list: (): Promise<Child[]> =>
         (mockListChildren as () => Promise<Child[]>)(),
     },
-  },
+  }),
 }));
 
 const MOCK_USER_ID = 'test-user-1';
 
+const mockSetMode = vi.fn();
+const mockSignInWithGoogle = vi.fn<() => Promise<void>>();
+
+interface MockAuthState {
+  user: { id: string; isAnonymous: boolean } | null;
+  status: AuthStatus;
+}
+
+let mockAuthState: MockAuthState = {
+  user: { id: MOCK_USER_ID, isAnonymous: true },
+  status: 'local',
+};
+
 vi.mock('../../auth/AuthContext', () => ({
-  useAuth: (): { user: { id: string; isAnonymous: true } } => ({
-    user: { id: MOCK_USER_ID, isAnonymous: true },
+  useAuth: (): {
+    user: { id: string; isAnonymous: boolean } | null;
+    status: AuthStatus;
+    setMode: typeof mockSetMode;
+    signInWithGoogle: typeof mockSignInWithGoogle;
+  } => ({
+    user: mockAuthState.user,
+    status: mockAuthState.status,
+    setMode: mockSetMode,
+    signInWithGoogle: mockSignInWithGoogle,
   }),
 }));
 
@@ -66,11 +87,15 @@ function renderOnboarding(): ReturnType<typeof render> {
 // Suites
 // ---------------------------------------------------------------------------
 
-describe('Onboarding — no child (happy path)', () => {
+describe('Onboarding — storage choice (first run / local)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // No existing child — show the welcome screen
+    mockAuthState = {
+      user: { id: MOCK_USER_ID, isAnonymous: true },
+      status: 'local',
+    };
     mockListChildren.mockResolvedValue([]);
+    mockSignInWithGoogle.mockResolvedValue(undefined);
   });
 
   it('renders the welcome heading', async () => {
@@ -83,14 +108,6 @@ describe('Onboarding — no child (happy path)', () => {
     });
   });
 
-  it('renders the reassuring welcome body copy', async () => {
-    renderOnboarding();
-
-    await waitFor(() => {
-      expect(screen.getByText(t('onboarding.welcomeBody'))).toBeInTheDocument();
-    });
-  });
-
   it('renders the medical disclaimer body text', async () => {
     renderOnboarding();
 
@@ -99,59 +116,122 @@ describe('Onboarding — no child (happy path)', () => {
     });
   });
 
-  it('disclaimer has no dismiss or close control', async () => {
+  it('renders both storage options', async () => {
     renderOnboarding();
 
     await waitFor(() => {
-      // Wait until the screen is ready (heading present)
       expect(
-        screen.getByRole('heading', { name: t('onboarding.welcomeTitle') }),
+        screen.getByRole('button', {
+          name: t('onboarding.storage.deviceTitle'),
+        }),
       ).toBeInTheDocument();
     });
-
-    // No close/dismiss button
-    expect(screen.queryByRole('button', { name: /close/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /dismiss/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: t('onboarding.storage.syncTitle'),
+      }),
+    ).toBeInTheDocument();
   });
 
-  it('renders the CTA button with correct accessible label', async () => {
-    renderOnboarding();
-
-    await waitFor(() => {
-      const cta = screen.getByRole('button', { name: t('onboarding.cta') });
-      expect(cta).toBeInTheDocument();
-    });
-  });
-
-  it('CTA has min touch target (≥44×44px class applied)', async () => {
-    renderOnboarding();
-
-    await waitFor(() => {
-      const cta = screen.getByRole('button', { name: t('onboarding.cta') });
-      expect(cta.className).toMatch(/min-h-\[44px\]/);
-      expect(cta.className).toMatch(/min-w-\[44px\]/);
-    });
-  });
-
-  it('CTA navigates to /profile/child on click', async () => {
+  it('"Keep on this device" sets local mode and navigates to /profile/child', async () => {
     const user = userEvent.setup();
     renderOnboarding();
 
+    const deviceOption = await screen.findByRole('button', {
+      name: t('onboarding.storage.deviceTitle'),
+    });
+    await user.click(deviceOption);
+
+    expect(mockSetMode).toHaveBeenCalledWith('local');
+    expect(mockNavigate).toHaveBeenCalledWith('/profile/child');
+  });
+
+  it('"Sync to my account" sets remote mode and starts Google sign-in', async () => {
+    const user = userEvent.setup();
+    renderOnboarding();
+
+    const syncOption = await screen.findByRole('button', {
+      name: t('onboarding.storage.syncTitle'),
+    });
+    await user.click(syncOption);
+
+    expect(mockSetMode).toHaveBeenCalledWith('remote');
+    await waitFor(() => {
+      expect(mockSignInWithGoogle).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('shows a calm error message when sign-in fails before redirect', async () => {
+    mockSignInWithGoogle.mockRejectedValueOnce(new Error('redirect failed'));
+    const user = userEvent.setup();
+    renderOnboarding();
+
+    const syncOption = await screen.findByRole('button', {
+      name: t('onboarding.storage.syncTitle'),
+    });
+    await user.click(syncOption);
+
+    await waitFor(() => {
+      expect(screen.getByText(t('auth.signInError'))).toBeInTheDocument();
+    });
+  });
+});
+
+describe('Onboarding — remote signed out (sign-in view)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuthState = { user: null, status: 'remote-signed-out' };
+    mockSignInWithGoogle.mockResolvedValue(undefined);
+  });
+
+  it('shows the "Continue with Google" button', async () => {
+    renderOnboarding();
+
     await waitFor(() => {
       expect(
-        screen.getByRole('button', { name: t('onboarding.cta') }),
+        screen.getByRole('button', { name: t('auth.signInWithGoogle') }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('does not show the storage choice options', async () => {
+    renderOnboarding();
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: t('auth.signInWithGoogle') }),
       ).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: t('onboarding.cta') }));
+    expect(
+      screen.queryByRole('button', {
+        name: t('onboarding.storage.deviceTitle'),
+      }),
+    ).not.toBeInTheDocument();
+  });
 
-    expect(mockNavigate).toHaveBeenCalledWith('/profile/child');
+  it('calls signInWithGoogle when the button is clicked', async () => {
+    const user = userEvent.setup();
+    renderOnboarding();
+
+    const signInButton = await screen.findByRole('button', {
+      name: t('auth.signInWithGoogle'),
+    });
+    await user.click(signInButton);
+
+    await waitFor(() => {
+      expect(mockSignInWithGoogle).toHaveBeenCalledTimes(1);
+    });
   });
 });
 
 describe('Onboarding — child already exists (redirect guard)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthState = {
+      user: { id: MOCK_USER_ID, isAnonymous: true },
+      status: 'local',
+    };
     mockListChildren.mockResolvedValue([fixtureChild]);
   });
 
@@ -162,42 +242,24 @@ describe('Onboarding — child already exists (redirect guard)', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/growth', { replace: true });
     });
   });
-
-  it('does not render the CTA after redirect', async () => {
-    renderOnboarding();
-
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/growth', { replace: true });
-    });
-
-    expect(
-      screen.queryByRole('button', { name: t('onboarding.cta') }),
-    ).not.toBeInTheDocument();
-  });
 });
 
 describe('Onboarding — repository error (graceful fallback)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthState = {
+      user: { id: MOCK_USER_ID, isAnonymous: true },
+      status: 'local',
+    };
     mockListChildren.mockRejectedValue(new Error('Storage error'));
   });
 
-  it('falls back to showing the welcome screen on repository error', async () => {
+  it('falls back to showing the storage choice on repository error', async () => {
     renderOnboarding();
 
     await waitFor(() => {
       expect(
         screen.getByRole('heading', { name: t('onboarding.welcomeTitle') }),
-      ).toBeInTheDocument();
-    });
-  });
-
-  it('still renders the CTA on error fallback', async () => {
-    renderOnboarding();
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole('button', { name: t('onboarding.cta') }),
       ).toBeInTheDocument();
     });
   });

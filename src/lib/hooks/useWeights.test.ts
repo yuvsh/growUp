@@ -4,21 +4,23 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import type { WeightEntry } from '../../types/index.js';
 
 // ---------------------------------------------------------------------------
-// Mock the repository module.
+// Mock the repository-routing hook.
 // vi.mock is hoisted; factory must not reference outer variables.
 // ---------------------------------------------------------------------------
 
-vi.mock('../../data/repository/index.js', () => ({
-  repository: {
-    children: {},
-    weights: {
-      listByChild: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    },
-    feedingConfig: {},
+const mockRepository = vi.hoisted(() => ({
+  children: {},
+  weights: {
+    listByChild: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
   },
+  feedingConfig: {},
+}));
+
+vi.mock('../../data/repository/useRepository.js', () => ({
+  useRepository: () => mockRepository,
 }));
 
 // ---------------------------------------------------------------------------
@@ -29,15 +31,16 @@ const OWNER_ID = 'owner-test-123';
 const CHILD_ID = 'child-test-abc';
 
 vi.mock('../../auth/AuthContext.js', () => ({
-  useAuth: () => ({ user: { id: OWNER_ID, isAnonymous: true } }),
+  useAuth: () => ({ user: { id: OWNER_ID, isAnonymous: true }, mode: 'local' }),
 }));
 
 // ---------------------------------------------------------------------------
 // Import mocked module + hook AFTER vi.mock calls
 // ---------------------------------------------------------------------------
 
-import { repository } from '../../data/repository/index.js';
 import { useWeights, isWeightDateValid } from './useWeights.js';
+
+const repository = mockRepository;
 
 const mockListByChild = vi.mocked(repository.weights.listByChild);
 const mockCreate = vi.mocked(repository.weights.create);

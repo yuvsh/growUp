@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { repository } from '../../data/repository/index.js';
+import { useRepository } from '../../data/repository/useRepository.js';
 import type { CreateFeedingConfigInput } from '../../data/repository/index.js';
 import { useAuth } from '../../auth/AuthContext.js';
 import type { FeedingConfig } from '../../types/index.js';
@@ -92,6 +92,8 @@ function buildDefaultConfig(childId: string, ownerId: string): FeedingConfig {
  */
 export function useFeeding(childId: string | null): UseFeedingResult {
   const { user } = useAuth();
+  const repository = useRepository();
+  const ownerId = user?.id ?? null;
 
   const [config, setConfig] = useState<FeedingConfig | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -102,7 +104,7 @@ export function useFeeding(childId: string | null): UseFeedingResult {
   // ---- Fetch on mount / childId change / reload ----------------------------
 
   useEffect(() => {
-    if (childId === null) {
+    if (childId === null || ownerId === null) {
       setConfig(null);
       setLoading(false);
       setError(null);
@@ -118,7 +120,7 @@ export function useFeeding(childId: string | null): UseFeedingResult {
       .then((fetched) => {
         if (cancelled) return;
         // If no config exists yet, expose defaults in memory — do not persist.
-        setConfig(fetched ?? buildDefaultConfig(childId, user.id));
+        setConfig(fetched ?? buildDefaultConfig(childId, ownerId));
         setLoading(false);
       })
       .catch((err: unknown) => {
@@ -132,7 +134,7 @@ export function useFeeding(childId: string | null): UseFeedingResult {
     return () => {
       cancelled = true;
     };
-  }, [childId, user.id, reloadCounter]);
+  }, [childId, ownerId, reloadCounter, repository]);
 
   // ---- saveConfig ----------------------------------------------------------
 
@@ -143,12 +145,17 @@ export function useFeeding(childId: string | null): UseFeedingResult {
         setError(noChildError);
         throw noChildError;
       }
+      if (ownerId === null) {
+        const noOwnerError = new Error('saveConfig called with no signed-in user');
+        setError(noOwnerError);
+        throw noOwnerError;
+      }
 
       setError(null);
 
       // Merge the patch on top of the current in-memory config (or defaults).
       const base: FeedingConfig =
-        config ?? buildDefaultConfig(childId, user.id);
+        config ?? buildDefaultConfig(childId, ownerId);
 
       // avgIntakeMlPerDay: use the patch value if explicitly provided (including
       // undefined, which clears the field); otherwise fall back to the stored value.
@@ -159,7 +166,7 @@ export function useFeeding(childId: string | null): UseFeedingResult {
 
       const input: CreateFeedingConfigInput = {
         childId,
-        ownerId: user.id,
+        ownerId,
         feedsPerDay: patch.feedsPerDay ?? base.feedsPerDay,
         useHighCalorie: patch.useHighCalorie ?? base.useHighCalorie,
         kcalPerMl: patch.kcalPerMl ?? base.kcalPerMl,
@@ -178,7 +185,7 @@ export function useFeeding(childId: string | null): UseFeedingResult {
         throw normalised;
       }
     },
-    [childId, user.id, config],
+    [childId, ownerId, config, repository],
   );
 
   // ---- reload --------------------------------------------------------------

@@ -4,19 +4,21 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import type { FeedingConfig } from '../../types/index.js';
 
 // ---------------------------------------------------------------------------
-// Mock the repository module.
+// Mock the repository-routing hook.
 // vi.mock is hoisted, so the factory must not reference outer variables.
 // ---------------------------------------------------------------------------
 
-vi.mock('../../data/repository/index.js', () => ({
-  repository: {
-    children: {},
-    weights: {},
-    feedingConfig: {
-      getByChild: vi.fn(),
-      upsert: vi.fn(),
-    },
+const mockRepository = vi.hoisted(() => ({
+  children: {},
+  weights: {},
+  feedingConfig: {
+    getByChild: vi.fn(),
+    upsert: vi.fn(),
   },
+}));
+
+vi.mock('../../data/repository/useRepository.js', () => ({
+  useRepository: () => mockRepository,
 }));
 
 // ---------------------------------------------------------------------------
@@ -27,14 +29,13 @@ const OWNER_ID = 'owner-test-123';
 const CHILD_ID = 'child-test-abc';
 
 vi.mock('../../auth/AuthContext.js', () => ({
-  useAuth: () => ({ user: { id: OWNER_ID, isAnonymous: true } }),
+  useAuth: () => ({ user: { id: OWNER_ID, isAnonymous: true }, mode: 'local' }),
 }));
 
 // ---------------------------------------------------------------------------
 // Import mocked modules AFTER vi.mock calls
 // ---------------------------------------------------------------------------
 
-import { repository } from '../../data/repository/index.js';
 import { useFeeding } from './useFeeding.js';
 import {
   DEFAULT_FEEDS_PER_DAY,
@@ -42,6 +43,8 @@ import {
   ML_PER_KG_MIN,
   ML_PER_KG_MAX,
 } from '../constants/feeding.js';
+
+const repository = mockRepository;
 
 // Typed references to mock functions
 const mockGetByChild = vi.mocked(repository.feedingConfig.getByChild);
