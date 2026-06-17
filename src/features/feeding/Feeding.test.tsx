@@ -59,7 +59,7 @@ const mockUseWeightsState: MockUseWeightsResult = {
   error: null,
 }
 
-vi.mock('../../lib/hooks/useWeights', () => ({
+vi.mock('../../lib/hooks/WeightsProvider', () => ({
   useWeights: (): MockUseWeightsResult => mockUseWeightsState,
 }))
 

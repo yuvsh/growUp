@@ -5,7 +5,8 @@ import React, { useRef, useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { Modal } from '../../components/ui/modal';
 import { Toast } from '../../components/ui/toast';
-import { useWeights, isWeightDateValid } from '../../lib/hooks/useWeights';
+import { useWeights } from '../../lib/hooks/WeightsProvider';
+import { isWeightDateValid } from '../../lib/hooks/useWeights';
 import { parseNaraBabyWeights } from '../../lib/import/naraBaby';
 import { t } from '../../i18n/t';
 import type { WeightEntry } from '../../types';
@@ -40,7 +41,6 @@ export function readFileAsText(file: File): Promise<string> {
 // ---------------------------------------------------------------------------
 
 interface ImportNaraBabyProps {
-  childId: string;
   dateOfBirth: string;
   existingEntries: WeightEntry[];
   onImported: () => void;
@@ -116,13 +116,12 @@ function classifyWeights(
 // ---------------------------------------------------------------------------
 
 export function ImportNaraBaby({
-  childId,
   dateOfBirth,
   existingEntries,
   onImported,
 }: ImportNaraBabyProps): React.JSX.Element {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { addWeight, editWeight } = useWeights(childId);
+  const { addWeight, editWeight } = useWeights();
 
   const [classified, setClassified] = useState<ClassifiedWeight[]>([]);
   const [modalOpen, setModalOpen] = useState(false);

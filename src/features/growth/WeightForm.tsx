@@ -14,7 +14,8 @@ import { Modal } from '../../components/ui/modal'
 import { Input } from '../../components/ui/input'
 import { Button } from '../../components/ui/button'
 import { Toast } from '../../components/ui/toast'
-import { useWeights, isWeightDateValid } from '../../lib/hooks/useWeights'
+import { useWeights } from '../../lib/hooks/WeightsProvider'
+import { isWeightDateValid } from '../../lib/hooks/useWeights'
 import { t } from '../../i18n/t'
 import type { WeightEntry } from '../../types/index'
 
@@ -25,7 +26,6 @@ import type { WeightEntry } from '../../types/index'
 interface WeightFormProps {
   open: boolean
   onClose: () => void
-  childId: string
   dateOfBirth: string
   entry?: WeightEntry
 }
@@ -120,13 +120,12 @@ function DeleteConfirm({
 export function WeightForm({
   open,
   onClose,
-  childId,
   dateOfBirth,
   entry,
 }: WeightFormProps): React.JSX.Element {
   const isEditMode = entry !== undefined
 
-  const { addWeight, editWeight, deleteWeight } = useWeights(childId)
+  const { addWeight, editWeight, deleteWeight } = useWeights()
 
   const [saveError, setSaveError] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)

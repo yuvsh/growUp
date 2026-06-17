@@ -14,7 +14,7 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { t } from '../../i18n/t'
 import { useChild } from '../../lib/hooks/useChild'
-import { useWeights } from '../../lib/hooks/useWeights'
+import { useWeights } from '../../lib/hooks/WeightsProvider'
 import { useFeeding } from '../../lib/hooks/useFeeding'
 import { dailyVolumeRange, perFeed } from '../../lib/feeding/index'
 import { roundMl } from '../../lib/feeding/format'
@@ -45,7 +45,7 @@ export function Feeding(): React.JSX.Element {
   const { child } = useChild()
   const childId = child?.id ?? null
 
-  const { weights } = useWeights(childId)
+  const { weights } = useWeights()
   const { config, saveConfig } = useFeeding(childId)
 
   // Derive the prefill weight from the latest weight entry (grams → kg).

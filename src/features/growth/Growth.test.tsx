@@ -46,7 +46,7 @@ vi.mock('../../lib/hooks/useChild', () => ({
 }));
 
 // ---------------------------------------------------------------------------
-// Mock: useWeights
+// Mock: useWeights (from WeightsProvider — the new shared context hook)
 // ---------------------------------------------------------------------------
 
 const mockReload = vi.fn();
@@ -54,7 +54,7 @@ const mockDeleteWeight = vi.fn();
 
 const mockUseWeights = vi.fn();
 
-vi.mock('../../lib/hooks/useWeights', () => ({
+vi.mock('../../lib/hooks/WeightsProvider', () => ({
   useWeights: (): ReturnType<typeof mockUseWeights> => mockUseWeights(),
 }));
 
@@ -76,7 +76,6 @@ vi.mock('./WeightChart', () => ({
 interface MockWeightFormProps {
   open: boolean;
   entry?: WeightEntry;
-  childId: string;
   dateOfBirth: string;
   onClose: () => void;
 }
