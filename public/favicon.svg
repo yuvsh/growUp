@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="growUp">
+  <!-- growUp favicon — simplified, bolder strokes for legibility at 16–32px.
+       Transparent background so it sits on any browser tab. -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Growth curve -->
+    <path d="M5 26 C 10 25, 13 23, 16 18 C 17.5 15.5, 18 14, 18 13"
+          stroke="#0891B2" stroke-width="3.4"/>
+    <!-- Sprout stem -->
+    <path d="M18 16 L 18 9" stroke="#059669" stroke-width="3"/>
+  </g>
+  <!-- Two leaves -->
+  <ellipse cx="13.5" cy="8" rx="5.2" ry="2.8" fill="#059669" transform="rotate(-35 13.5 8)"/>
+  <ellipse cx="22" cy="7.2" rx="5.2" ry="2.8" fill="#059669" transform="rotate(35 22 7.2)"/>
+</svg>

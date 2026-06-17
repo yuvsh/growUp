@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" role="img" aria-label="A sprout growing along a gentle growth curve">
+  <!-- growUp onboarding hero — a sprout growing along a rising growth curve.
+       Calm, warm, organic. Brand palette baked in (used via <img>). -->
+  <!-- Soft background blobs -->
+  <ellipse cx="170" cy="70" rx="70" ry="60" fill="#CFFAFE"/>
+  <circle cx="196" cy="46" r="18" fill="#FCD34D" opacity="0.75"/>
+  <!-- Ground mound -->
+  <path d="M0 168 Q 120 140 240 168 L 240 200 L 0 200 Z" fill="#D1FAE5"/>
+  <path d="M0 174 Q 120 148 240 174" fill="none" stroke="#A7F3D0" stroke-width="3" stroke-linecap="round"/>
+  <!-- Rising growth curve with percentile points -->
+  <path d="M28 158 C 70 152, 96 134, 120 104 C 140 80, 152 62, 160 48"
+        fill="none" stroke="#0891B2" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 12"/>
+  <circle cx="58" cy="150" r="4.5" fill="#0891B2"/>
+  <circle cx="104" cy="118" r="4.5" fill="#0891B2"/>
+  <circle cx="148" cy="64" r="6" fill="#0E7490"/>
+  <!-- Sprout growing from the mound -->
+  <path d="M96 168 L 96 120" fill="none" stroke="#059669" stroke-width="6" stroke-linecap="round"/>
+  <ellipse cx="80" cy="112" rx="20" ry="10" fill="#059669" transform="rotate(-35 80 112)"/>
+  <ellipse cx="114" cy="108" rx="20" ry="10" fill="#34D399" transform="rotate(35 114 108)"/>
+</svg>

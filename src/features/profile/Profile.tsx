@@ -15,6 +15,7 @@ import { Button } from '../../components/ui/button';
 import { EmptyState } from '../../components/ui/empty-state';
 import { ErrorState } from '../../components/ui/error-state';
 import { Skeleton } from '../../components/ui/skeleton';
+import emptyNoBaby from '../../assets/illustrations/empty-no-baby.svg';
 import { StoragePrivacy } from '../settings/StoragePrivacy';
 import { t } from '../../i18n/t';
 
@@ -56,6 +57,9 @@ export function Profile(): React.JSX.Element {
       <main className="flex flex-col items-center justify-center min-h-[60vh] p-[var(--space-4)]">
         <EmptyState
           title={t('profile.empty.title')}
+          illustration={
+            <img src={emptyNoBaby} alt="" aria-hidden="true" className="w-full h-auto" />
+          }
           action={
             <Button
               variant="primary"

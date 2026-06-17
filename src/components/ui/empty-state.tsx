@@ -18,7 +18,11 @@ export function EmptyState({
   illustration,
   action,
 }: EmptyStateProps): React.JSX.Element {
+  // Illustrations get a roomier box so spot art can breathe; bare icons stay 64px.
   const visual = illustration ?? icon
+  const visualBoxClass = illustration
+    ? 'w-40 max-w-full h-auto'
+    : 'w-16 h-16'
 
   return (
     <div
@@ -29,7 +33,12 @@ export function EmptyState({
       ].join(' ')}
     >
       {visual && (
-        <div className="flex items-center justify-center text-[var(--color-text-muted)] w-16 h-16">
+        <div
+          className={[
+            'flex items-center justify-center text-[var(--color-text-muted)]',
+            visualBoxClass,
+          ].join(' ')}
+        >
           {visual}
         </div>
       )}

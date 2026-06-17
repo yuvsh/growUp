@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140" role="img" aria-label="An empty growth chart waiting for the first weight">
+  <!-- growUp empty state — "no weights yet". A bare chart with a dotted
+       percentile curve and one hollow point inviting the first measurement. -->
+  <rect x="0.5" y="0.5" width="199" height="139" rx="14" fill="#FFFFFF"/>
+  <!-- Axes -->
+  <path d="M34 18 L 34 112 L 178 112" fill="none" stroke="#A5F3FC" stroke-width="3" stroke-linecap="round"/>
+  <!-- Dotted percentile curve placeholder -->
+  <path d="M40 100 C 78 94, 104 78, 126 56 C 144 38, 158 30, 170 26"
+        fill="none" stroke="#22D3EE" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 9"/>
+  <!-- One hollow "add me" point -->
+  <circle cx="64" cy="92" r="6.5" fill="#FFFFFF" stroke="#0891B2" stroke-width="3"/>
+  <!-- Small sprout watermark at the curve's end -->
+  <path d="M170 30 L 170 20" fill="none" stroke="#059669" stroke-width="3.5" stroke-linecap="round"/>
+  <ellipse cx="163" cy="17" rx="7.5" ry="3.8" fill="#34D399" transform="rotate(-35 163 17)"/>
+  <ellipse cx="177" cy="16" rx="7.5" ry="3.8" fill="#059669" transform="rotate(35 177 16)"/>
+</svg>

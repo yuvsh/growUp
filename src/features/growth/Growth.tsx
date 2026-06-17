@@ -19,6 +19,7 @@ import { Button } from '../../components/ui/button';
 import { Skeleton } from '../../components/ui/skeleton';
 import { EmptyState } from '../../components/ui/empty-state';
 import { ErrorState } from '../../components/ui/error-state';
+import emptyNoWeights from '../../assets/illustrations/empty-no-weights.svg';
 import { BelowThirdAlert } from './BelowThirdAlert';
 import { WeightChart } from './WeightChart';
 // ZScoreChart is only shown when the chart toggle is on "z-score". Lazy-load it so
@@ -237,6 +238,9 @@ export function Growth(): React.JSX.Element {
       {!hasEntries && (
         <EmptyState
           title={t('growth.empty.title')}
+          illustration={
+            <img src={emptyNoWeights} alt="" aria-hidden="true" className="w-full h-auto" />
+          }
           action={
             <div className="flex flex-col items-center gap-[var(--space-3)]">
               <Button
