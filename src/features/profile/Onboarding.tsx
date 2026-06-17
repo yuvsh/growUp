@@ -5,9 +5,10 @@
 // States: storage choice (first run / local) · sign-in view (remote-signed-out) ·
 //         brief checking spinner · calm sign-in error.
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
+import { Logo } from '../../components/ui/Logo';
 import { MedicalDisclaimer } from '../../components/ui/medical-disclaimer';
 import { LoadingSpinner } from '../../components/ui/loading-spinner';
 import { useRepository } from '../../data/repository/useRepository';
@@ -250,6 +251,7 @@ function SignInView({
   return (
     <>
       <header className="flex flex-col items-center gap-[var(--space-3)] text-center">
+        <Logo size={48} />
         <h1
           className={[
             'font-[var(--font-heading)]',
@@ -304,6 +306,7 @@ function StorageChoiceView({
   return (
     <>
       <header className="flex flex-col items-center gap-[var(--space-3)] text-center">
+        <Logo size={48} />
         <h1
           className={[
             'font-[var(--font-heading)]',
@@ -377,6 +380,21 @@ function StorageChoiceView({
       ) : null}
 
       {signInFailed ? <SignInError /> : null}
+
+      {/* Quiet entry point to Clinic Mode — discoverable for clinicians (CLM-1) */}
+      <Link
+        to="/clinic"
+        className={[
+          'font-[var(--font-body)]',
+          'text-[var(--text-sm)]',
+          'text-[var(--color-primary)]',
+          'underline underline-offset-2',
+          'rounded-[var(--radius-sm)] p-[var(--space-1)]',
+          'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)]',
+        ].join(' ')}
+      >
+        {t('clinic.entry.openLink')}
+      </Link>
     </>
   );
 }

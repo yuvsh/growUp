@@ -15,7 +15,7 @@ At a clinic visit for a baby with failure to thrive (FTT) or a history of IUGR, 
 
 ## 2. Product Overview
 
-Clinic Mode is a point-of-care surface inside the existing growUp web app. A clinician — pediatrician, nurse, or dietitian — enters the baby's date of birth, sex, birth weight, and one or two current weights, and instantly gets the exact WHO percentile and z-score (LMS method) at birth and now, the weights plotted against the WHO curves, the trend and gain velocity from birth, and the grams/day needed to reach or hold the 3rd-percentile line. Because birth weight anchors the read at day 0, a single current weight already produces a full trend. Nothing is saved: the read lives on screen during the visit and is gone when the screen is closed. No account, no profile, no stored child data — just a fast, accurate, privacy-clean read the clinician can speak straight to the parent.
+Clinic Mode is a point-of-care surface inside the existing growUp web app. A clinician — pediatrician, nurse, or dietitian — enters the baby's date of birth, sex, birth weight, and one current weight, and instantly gets the exact WHO percentile and z-score (LMS method) at birth and now, the weights plotted against the WHO curves, the trend and gain velocity from birth, and the grams/day needed to reach or hold the 3rd-percentile line. Because birth weight anchors the read at day 0, a single current weight already produces a full trend; the clinician can add a second current weight from the result screen to refine recent velocity. Nothing is saved: the read lives on screen during the visit and is gone when the screen is closed. No account, no profile, no stored child data — just a fast, accurate, privacy-clean read the clinician can speak straight to the parent.
 
 ---
 
@@ -81,15 +81,17 @@ As a clinician, I want a clearly labeled Clinic Mode entry point, so that I can 
 #### Happy Path
 1. Clinician enters **date of birth** and selects **sex** (required for WHO standards).
 2. Clinician enters **birth weight** (the baby's weight at birth — anchors the read at day 0).
-3. Clinician enters **current weight #1** with its measurement date (defaults to today).
-4. Optionally adds **current weight #2** with its date (refines recent velocity).
-5. Clinician taps **Get read**.
+3. Clinician enters **one current weight** with its measurement date (defaults to today).
+4. Clinician taps **Get read**.
+
+> The read form captures exactly one current weight. A second current weight, if
+> useful, is added later from the **result screen** ("Add another weight") — see
+> the Reading the Result epic.
 
 > **Edge cases:**
-> - Birth weight + one current weight is the minimum → percentile/z-score, chart, AND trend/velocity/catch-up all compute (birth is the anchor point).
-> - Adding a second current weight refines recent velocity but is never required for a trend.
+> - Birth weight + one current weight is all that's needed → percentile/z-score, chart, AND trend/velocity/catch-up all compute (birth is the anchor point).
 > - DOB in the future, or any age beyond WHO 0–24mo range → inline, plain-language validation; no result until fixed.
-> - A current-weight date before the date of birth, two current weights with the same date, or the second date before the first → inline validation explaining the order needed.
+> - A current-weight date before the date of birth → inline validation explaining the order needed.
 > - Implausible weight (e.g. 50 kg infant, or birth weight far outside viable range) → soft warning asking the clinician to confirm.
 
 #### Flow Diagram
@@ -97,11 +99,8 @@ As a clinician, I want a clearly labeled Clinic Mode entry point, so that I can 
 ```mermaid
 flowchart TD
   A[Clinic Mode entry] --> B[Input form: DOB + sex + birth weight]
-  B --> C[Current weight #1 + date]
-  C --> D{Add second current weight?}
-  D -->|Yes| E[Current weight #2 + date]
-  D -->|No| F[Get read]
-  E --> F[Get read]
+  B --> C[Current weight + date]
+  C --> F[Get read]
   F --> G{Inputs valid?}
   G -->|No| H[Inline validation, stay on form]
   G -->|Yes| I[Result screen]
@@ -112,12 +111,12 @@ flowchart TD
 
 | Screen | Empty state | Loading state | Key error state |
 |---|---|---|---|
-| Input form | Clean form with DOB, sex, birth weight, and one current-weight row visible; clear "+ Add second weight" affordance | Compute is instant; no loading screen needed | "Please enter date of birth, sex, and birth weight so we can compute the WHO percentile." |
+| Input form | Clean form with DOB, sex, birth weight, and one current-weight row visible | Compute is instant; no loading screen needed | "Please enter date of birth, sex, and birth weight so we can compute the WHO percentile." |
 | Result screen | N/A (only reached with valid inputs) | Brief inline calc state if needed | "This age is outside the WHO 0–24 month standard — the percentile can't be computed." |
 
 > - Never leave a screen blank — the form opens ready to type, cursor in the first field.
 > - Plain-language validation only — no codes, no jargon.
-> - Single weight must still produce a useful result; the second weight is additive, never required.
+> - A single current weight already produces a full read; birth weight is the second dated point.
 
 #### Stories
 
@@ -128,10 +127,10 @@ As a clinician, I want to enter DOB, sex, birth weight, and one current weight w
 - [ ] No name, account, or saved profile is required at any point.
 
 **CLM-3** · Must
-As a clinician, I want to optionally add a second current weight, so that I can refine recent gain velocity.
-- [ ] A second current weight + date can be added and removed before computing.
-- [ ] Trend and g/day velocity are computed from birth onward with one current weight; a second current weight refines recent velocity.
-- [ ] Dates are validated for order (on/after birth, second on/after first) and plausibility with plain-language messages.
+As a clinician, I want to add a second current weight **from the result screen**, so that I can refine recent gain velocity without starting over.
+- [ ] The result screen offers "Add another weight" while only one current weight exists; it's hidden once two are present (model cap).
+- [ ] Adding a weight re-derives the read in place (percentile, chart, trend, catch-up) — no navigation, nothing saved.
+- [ ] The added weight may fall anywhere on/after birth (including between birth and the existing reading); it only must not share a date with an existing current weight. Validated with plain-language messages.
 
 **CLM-4** · Should
 As a clinician, I want soft warnings on implausible inputs, so that a typo doesn't produce a misleading read.
@@ -142,38 +141,42 @@ As a clinician, I want soft warnings on implausible inputs, so that a typo doesn
 ### Epic: Reading the Result
 
 #### Happy Path
-1. Clinician sees the **exact percentile and z-score** at the top, in plain language.
-2. Below it, the **weight chart** plots the entered point(s) against the 3rd/15th/50th/85th/97th WHO curves.
-3. If two weights were entered, a **trend + velocity** line states direction and g/day.
+1. Clinician sees the **exact percentile and z-score** at the top, in plain language (born at the Xth, now at the Yth).
+2. Below it, the **weight chart** plots birth + current point(s) against the 3rd/15th/50th/85th/97th WHO curves.
+3. A **trend + velocity** line states direction and g/day from birth (always present — birth anchors ≥2 dated points).
 4. A **catch-up target** states the grams/day and weekly gain needed to reach or hold the 3rd-percentile line.
-5. Clinician reads the summary aloud to the parent, then closes the screen — nothing is saved.
+5. Optionally, clinician taps **Add another weight** to enter a second current reading; the read re-derives in place.
+6. Clinician reads the summary aloud to the parent, then closes the screen — nothing is saved.
 
 > **Edge cases:**
-> - One weight only → trend, velocity, and catch-up sections show a gentle "add a second weight to see this" rather than empty boxes.
+> - Trend/velocity/catch-up are always available (birth weight is the day-0 anchor) — no "needs a second weight" prompt.
 > - Weight at or above a healthy percentile → catch-up framing adapts to "on track / maintaining," never inventing a deficit.
 > - Below 3rd percentile → calm, factual framing with the gram gap and a hopeful next number; never alarmist.
+> - "Add another weight" is hidden once two current weights exist (model cap of two).
 
 #### Flow Diagram
 
 ```mermaid
 flowchart TD
-  A[Result screen] --> B[Percentile + z-score]
+  A[Result screen] --> B[Percentile + z-score: birth + now]
   A --> C[Weight chart vs WHO curves]
-  A --> D{Two weights?}
-  D -->|Yes| E[Trend + velocity]
-  D -->|Yes| F[Catch-up target]
-  D -->|No| G[Prompt: add a second weight]
-  A --> H[Close: clears everything]
+  A --> D[Trend + velocity]
+  A --> E[Catch-up / maintenance target]
+  A --> F{Add another weight?}
+  F -->|Yes, <2 current| G[Inline weight + date → validate → re-derive in place]
+  F -->|No| H[Close: clears everything]
+  G --> A
 ```
 
 #### UX Notes
 
 | Screen | Empty state | Loading state | Key error state |
 |---|---|---|---|
-| Result screen | N/A (only valid inputs reach it) | Instant; recompute on edit is in-place | "We couldn't compute a result from these values — please review the inputs." |
+| Result screen | N/A (only valid inputs reach it) | Instant; recompute on add is in-place | "We couldn't compute a result from these values — please review the inputs." |
+| Add-weight panel | n/a (inline form) | Instant | Inline per-field: weight required/positive; date before birth; out of WHO range; same date as the existing reading |
 
 > - Phrasing is built to be spoken to a parent: warm, factual, never alarmist.
-> - Sections that need the second weight degrade gracefully with a clear prompt, not blank panels.
+> - Adding a weight updates the chart/trend/projection in place — no navigation, nothing saved.
 > - A persistent, quiet reminder that this is informational and supports clinical judgment.
 
 #### Stories
@@ -244,7 +247,7 @@ As a clinician, I want a one-tap reset, so that I can serve the next family with
 | Screen | Epic | Purpose | Entry points |
 |---|---|---|---|
 | Clinic Mode entry / notice | Entering Clinic Mode | Explain the mode (quick, nothing saved, not a diagnosis) and start | App main entry screen |
-| Input form | Capturing Inputs | Enter DOB, sex, birth weight, and one or two current weights with dates | From Clinic Mode entry; from "New read" on result |
+| Input form | Capturing Inputs | Enter DOB, sex, birth weight, and one current weight with its date | From Clinic Mode entry; from "New read" on result |
 | Result screen | Reading the Result | Show percentile/z-score, chart, trend/velocity, catch-up target | After valid inputs on the form |
 | Inline validation states | Capturing Inputs | Plain-language correction for invalid DOB/age/weight/date order | Within the input form |
 
@@ -254,7 +257,7 @@ As a clinician, I want a one-tap reset, so that I can serve the next family with
 
 ### In Scope (MVP)
 - Clinic Mode entry inside the existing growUp web app.
-- Inputs: DOB, sex, birth weight, and one or two current weights with dates. No account, no profile.
+- Inputs: DOB, sex, birth weight, and one current weight on the read form (a second current weight can be added from the result screen). No account, no profile.
 - Outputs: exact WHO percentile + z-score at birth and now, chart vs WHO curves (birth point + current point(s)), trend + g/day velocity from birth, catch-up target to the 3rd percentile.
 - Fully ephemeral: nothing stored, screen-only, one-tap reset.
 - Non-diagnostic, parent-readable phrasing and disclaimer.

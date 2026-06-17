@@ -293,6 +293,70 @@ const en = {
       gaugeTitle: 'Intake vs. need',
     },
   },
+  clinic: {
+    entry: {
+      heading: 'Clinic Mode',
+      description:
+        'A fast, exact WHO growth read for the visit — no account, no setup.',
+      noticeNotSaved:
+        'Nothing is saved. The read stays on screen during the visit and is gone when you close it.',
+      noticeJudgment:
+        'Clinic Mode supports — it does not replace — your clinical judgment.',
+      cta: 'Start a read',
+      back: 'Back to GrowUp',
+      openLink: 'Are you a clinician? Open Clinic Mode',
+    },
+    form: {
+      title: 'Enter the baby’s details',
+      dobLabel: 'Date of birth',
+      sexLabel: 'Sex',
+      birthWeightLabel: 'Birth weight (g)',
+      currentWeightLabel: 'Current weight (g)',
+      currentWeightDateLabel: 'Measurement date',
+      whyWeAsk:
+        'WHO standards differ by sex, age is computed to the exact day, and birth weight anchors the trend at day 0.',
+      getRead: 'Get read',
+      clear: 'Clear',
+      validation: {
+        dobRequired: 'Please enter the date of birth',
+        dobFuture: 'Date of birth cannot be in the future',
+        sexRequired: 'Please select a sex',
+        birthWeightRequired: 'Please enter the birth weight',
+        birthWeightPositive: 'Birth weight must be greater than zero',
+        currentWeightRequired: 'Please enter at least one current weight',
+        currentWeightPositive: 'Weight must be greater than zero',
+        dateBeforeBirth: 'Measurement date cannot be before the date of birth',
+        ageOutOfRange: 'This age is outside the WHO 0–24 month standard',
+        secondDateBeforeFirst: 'The second weight must be on or after the first',
+        sameDatePair: 'The two weights must be on different dates',
+        implausibleWeight: 'That weight looks unusual — please confirm it’s correct.',
+      },
+    },
+    result: {
+      bornAndNow: 'Born at the {birth} percentile, now at the {current} percentile.',
+      belowThird:
+        'The latest weight is below the 3rd percentile line — a calm, factual read to share.',
+      onTrack: 'The latest weight is tracking on a healthy percentile.',
+      maintenance: 'On or above a healthy percentile — the goal is to maintain, not catch up.',
+      trendTitle: 'Trend since birth',
+      trendGain: 'Gaining',
+      trendLoss: 'Losing',
+      trendFlat: 'Holding steady',
+      perDay: 'per day',
+      perWeek: 'per week',
+      catchUpTitle: 'Catch-up target',
+      catchUpLabel: 'To reach the 3rd-percentile line',
+      maintenanceTitle: 'Maintenance',
+      maintenanceLabel: 'To hold the current percentile',
+      newRead: 'New read',
+      addWeight: '+ Add another weight',
+      addWeightTitle: 'Add another weight',
+      addWeightSave: 'Add',
+      addWeightCancel: 'Cancel',
+      disclaimer:
+        'This read supports — it does not replace — clinical judgment. Nothing is saved.',
+    },
+  },
 } as const;
 
 export default en;

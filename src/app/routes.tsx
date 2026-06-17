@@ -47,6 +47,30 @@ const AuthCallback = React.lazy(() =>
   import('./AuthCallback.js').then((m) => ({ default: m.AuthCallback })),
 );
 
+// Clinic Mode — point-of-care surface. Routed OUTSIDE PrimaryLayout (no child
+// guard, no bottom tabs). ClinicLayout mounts the shared ephemeral provider so
+// the form and result screens share one in-memory state.
+const ClinicLayout = React.lazy(() =>
+  import('../features/clinic/ClinicReadContext.js').then((m) => ({
+    default: m.ClinicLayout,
+  })),
+);
+const ClinicEntry = React.lazy(() =>
+  import('../features/clinic/ClinicEntry.js').then((m) => ({
+    default: m.ClinicEntry,
+  })),
+);
+const ClinicForm = React.lazy(() =>
+  import('../features/clinic/ClinicForm.js').then((m) => ({
+    default: m.ClinicForm,
+  })),
+);
+const ClinicResult = React.lazy(() =>
+  import('../features/clinic/ClinicResult.js').then((m) => ({
+    default: m.ClinicResult,
+  })),
+);
+
 /** Calm, centered fallback shown while a lazy route chunk loads. */
 function LazyRoute({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
@@ -94,6 +118,42 @@ export const router = createBrowserRouter([
         <ChildForm />
       </LazyRoute>
     ),
+  },
+  {
+    // Clinic Mode — outside PrimaryLayout (no child guard, no bottom tabs).
+    // ClinicLayout provides the shared ephemeral state to the nested screens.
+    path: '/clinic',
+    element: (
+      <LazyRoute>
+        <ClinicLayout />
+      </LazyRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: (
+          <LazyRoute>
+            <ClinicEntry />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'read',
+        element: (
+          <LazyRoute>
+            <ClinicForm />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'result',
+        element: (
+          <LazyRoute>
+            <ClinicResult />
+          </LazyRoute>
+        ),
+      },
+    ],
   },
   {
     // Primary screens — guarded (redirect to /onboarding if no child), with BottomTabs + disclaimer footer

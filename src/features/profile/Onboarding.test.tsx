@@ -19,6 +19,18 @@ const mockNavigate = vi.fn();
 
 vi.mock('react-router-dom', () => ({
   useNavigate: (): typeof mockNavigate => mockNavigate,
+  Link: ({
+    to,
+    children,
+    ...rest
+  }: {
+    to: string;
+    children: React.ReactNode;
+  } & React.AnchorHTMLAttributes<HTMLAnchorElement>): React.JSX.Element => (
+    <a href={to} {...rest}>
+      {children}
+    </a>
+  ),
 }));
 
 const mockListChildren = vi.fn<() => Promise<Child[]>>();

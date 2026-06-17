@@ -244,7 +244,7 @@ On save, recompute percentile/z and update chart/history. Edit mode prefills + o
 | Route | Screen | Guard |
 |---|---|---|
 | `/clinic` | Clinic Entry / notice | none (outside PrimaryLayout) |
-| `/clinic/read` | Clinic Form (DOB + sex + birth weight + 1–2 current weights) | none |
+| `/clinic/read` | Clinic Form (DOB + sex + birth weight + one current weight) | none |
 | `/clinic/result` | Clinic Result | none (redirect to `/clinic/read` if no in-memory input) |
 
 State for all three lives in a single in-memory `useClinicRead` hook — refresh/close clears everything.
@@ -287,36 +287,34 @@ link returns to the parent app.
 **Design page:** `design-system/pages/clinic.md`
 **Layout:** Title "Enter the baby's details". Form sections: **Date of birth** (date, not future),
 **Sex** (reuse `SexSelector`, with one-line "why we ask" — WHO standards differ), **Birth weight**
-(grams/kg input, required — helper "The baby's weight at birth; anchors the read at day 0"), then
-**Current weight #1** (grams/kg input + measurement date defaulting to today). A quiet "+ Add a second
-weight" reveals **Current weight #2** (with remove). Helper under the second weight: "Refines recent
-daily gain." Primary "Get read" (disabled until DOB + sex + birth weight + current weight #1 valid),
-secondary "Clear". Inline validation under each field.
+(grams/kg input, required — helper "The baby's weight at birth; anchors the read at day 0"), then a
+single **Current weight** (grams/kg input + measurement date defaulting to today). Primary "Get read"
+(disabled until DOB + sex + birth weight + current weight valid), secondary "Clear". Inline validation
+under each field. A second current weight is **not** entered here — it's added from the result screen.
 **Components from ui/:** Input, Button, Card. Reuse weight-row pattern from `WeightForm`; `SexSelector`.
 **Screen components to create:** `src/features/clinic/ClinicForm.tsx`, `useClinicRead.ts`,
-`clinicSchema.ts`, `types.ts`.
-**Data flow:** writes form values into `useClinicRead` (in-memory); on submit derives `ClinicRead` via
-`lib/who` + `lib/growth` and navigates to `/clinic/result`. No repository, no localStorage.
+`ClinicReadContext.tsx`, `clinicSchema.ts`, `types.ts`.
+**Data flow:** writes form values into the shared `useClinicReadContext().submit(...)` (in-memory); the
+read is derived via `lib/who` + `lib/growth`, then navigates to `/clinic/result`. No repository, no localStorage.
 
 **States**
 | Element | Empty | Loading | Error |
 |---|---|---|---|
 | Form | Opens with DOB, sex, birth weight, one current-weight row visible, cursor in first field | none (sync compute) | Inline per field: "Enter a date of birth", "Choose a sex", "Enter the birth weight", "Enter a weight" |
 | DOB | — | — | "Date of birth can't be in the future" / "Age is outside the WHO 0–24 month range" |
-| Current weight dates | — | — | "The weight date must be on or after the date of birth" / "The second weight's date must be on or after the first" |
+| Current weight date | — | — | "The weight date must be on or after the date of birth" |
 | Weight value | — | — | Soft warn on implausible value (incl. birth weight): "That looks unusual — please confirm" |
 
 **A11y**
 - [ ] Every input has a visible `<label>` (not placeholder-only); error below the field.
 - [ ] `SexSelector` is keyboard operable (arrow keys / Tab), conveys selection by more than color.
 - [ ] "Get read" announces disabled state; not enabled until min valid inputs.
-- [ ] "+ Add a second weight" / "Remove" → buttons with aria-labels, ≥44×44px.
 
 **Responsive**
 - Mobile 375px: single column, inputs full width, "Get read" full width sticky-ish at bottom.
 - Desktop 1280px: centered card max-w ~520px.
 
-**Animation:** second-weight reveal slide/fade `--duration-normal` `--ease-out`; respect reduced-motion.
+**Animation:** field focus ring fade; respect reduced-motion.
 
 ---
 
@@ -329,15 +327,18 @@ secondary "Clear". Inline validation under each field.
 Below: **WeightChart** (reused) plotting the WHO curves with the birth point (day 0) + 1–2 current
 points. Then **TrendCard** (direction + g/day from birth) — always present, since birth weight anchors
 the trend. Then the **catch-up target** via reused **ProjectionCard** (catch-up amber when below the
-line, maintenance green when on/above). A quiet **disclaimer note**. Footer: "New read" (resets and
-returns to a blank form).
-**Components from ui/:** Card, Badge, EmptyState, Button, MedicalDisclaimer. Reuse `WeightChart`,
-`ProjectionCard` from `features/growth`.
+line, maintenance green when on/above). Then an **"Add another weight"** affordance (shown while only
+one current weight exists; capped at two): it reveals a small inline weight + date panel that validates
+and, on confirm, re-derives the read in place. A quiet **disclaimer note**. Footer: "New read" (resets
+and returns to a blank form).
+**Components from ui/:** Input, Card, Button, MedicalDisclaimer. Reuse `WeightChart`, `ProjectionCard`
+from `features/growth`; `PercentileZScoreCallout`, `TrendCard` from `features/clinic`.
 **Screen components to create:** `src/features/clinic/ClinicResult.tsx`,
 `src/features/clinic/PercentileZScoreCallout.tsx`, `src/features/clinic/TrendCard.tsx`.
-**Data flow:** reads derived `ClinicRead` from `useClinicRead`; if absent (e.g. direct nav/refresh),
+**Data flow:** reads derived `ClinicRead` from `useClinicReadContext()`; if absent (e.g. direct nav/refresh),
 redirect to `/clinic/read`. Builds ephemeral `WeightEntry[]` (synthetic ids, never persisted) to feed
-the reused chart/projection components.
+the reused chart/projection. "Add another weight" calls `submit(...)` with the updated input so the
+whole read re-derives; the two current weights are kept ordered by date.
 
 **States**
 | Element | Empty | Loading | Error |
@@ -345,10 +346,12 @@ the reused chart/projection components.
 | Result | If no in-memory input → redirect to `/clinic/read` | none (sync) | "We couldn't compute a result from these values — please review the inputs" → back to form |
 | TrendCard | Always present (birth + ≥1 current weight = trend); a second current weight refines recent velocity | — | — |
 | Catch-up | On/above line → maintenance framing (green), not a fabricated deficit | — | — |
+| Add-weight panel | Hidden once two current weights exist | none (sync) | Inline: weight required/positive; date before birth; outside WHO range; same date as the existing reading |
 
 **A11y**
 - [ ] Percentile/z-score conveyed as text, not color alone; amber/green paired with icon + words.
-- [ ] "New read" → Button, aria-label "Start a new read", ≥44×44px.
+- [ ] "New read" / "Add another weight" → Buttons with aria-labels, ≥44×44px.
+- [ ] Add-weight panel inputs have visible labels; error below the field.
 - [ ] Chart has an accessible text summary nearby (the callout sentence) for screen readers.
 - [ ] Disclaimer text ≥4.5:1, not dismissable.
 
