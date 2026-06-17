@@ -1,28 +1,34 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * Lazy, guarded Supabase client singleton.
  *
- * The client is created on the FIRST call to {@link getSupabaseClient}, not at
- * module import time. This is deliberate: local-only users have no
- * `VITE_SUPABASE_*` env vars, and we must never crash the app (or the build)
- * simply because the remote-sync feature is unconfigured.
+ * The library is loaded via a DYNAMIC `import()` on the FIRST call to
+ * {@link getSupabaseClient}, not at module import time. This keeps the ~211 KB
+ * `@supabase/supabase-js` bundle out of the eager startup graph: local-only
+ * users (and the first paint for everyone) never download it. The type-only
+ * import above is erased at build time, so it adds nothing to the bundle.
+ *
+ * This is also why the function is async — callers must `await` the client.
  */
 
 const MISSING_CONFIG_MESSAGE = 'Supabase is not configured';
 
-let client: SupabaseClient | null = null;
+// Cache the PROMISE (not the resolved client) so concurrent first-callers share
+// a single dynamic import instead of racing two `import()`s.
+let clientPromise: Promise<SupabaseClient> | null = null;
 
 /**
- * Returns the shared Supabase client, creating it on first use.
+ * Returns the shared Supabase client, loading the library and creating the
+ * client on first use.
  *
  * @throws Error with message "Supabase is not configured" when either
  *   `VITE_SUPABASE_URL` or `VITE_SUPABASE_ANON_KEY` is missing — callers that
  *   may run in local-only mode must guard against this.
  */
-export function getSupabaseClient(): SupabaseClient {
-  if (client !== null) {
-    return client;
+export async function getSupabaseClient(): Promise<SupabaseClient> {
+  if (clientPromise !== null) {
+    return clientPromise;
   }
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -37,15 +43,17 @@ export function getSupabaseClient(): SupabaseClient {
     throw new Error(MISSING_CONFIG_MESSAGE);
   }
 
-  client = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-  });
+  clientPromise = import('@supabase/supabase-js').then(({ createClient }) =>
+    createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    }),
+  );
 
-  return client;
+  return clientPromise;
 }
 
 /**

@@ -8,19 +8,10 @@
 // Data: repository.weights.listByChild + lib/who (LMS/z/percentile/curves) + lib/growth (velocity/projection/insights).
 // All math is pure + client-side. Chart must have an accessible text/table fallback (not sole source).
 
-// ---------------------------------------------------------------------------
-// NOTE: Two useWeights instances
-// ---------------------------------------------------------------------------
-// This screen owns one `useWeights(childId)` instance for display.
-// `WeightForm` owns a separate instance internally for mutations (add/edit/delete).
-// Because they are independent React state, closing the form calls this screen's
-// `reload()` to trigger a fresh fetch and sync both lists to the source of truth.
-// ---------------------------------------------------------------------------
-
 import React, { Suspense, useState } from 'react';
 import { useUiState } from '../../ui-state/UiStateContext';
 import { useChild } from '../../lib/hooks/useChild';
-import { useWeights } from '../../lib/hooks/useWeights';
+import { useWeights } from '../../lib/hooks/WeightsProvider';
 import { weightToZResult } from '../../lib/who';
 import { ageFromDob, formatAge } from '../../lib/growth/age';
 import { formatGramsAsKg, formatPercentileTh } from '../../lib/growth/format';
@@ -86,8 +77,7 @@ function findLatestEntry(entries: WeightEntry[]): WeightEntry | undefined {
 
 export function Growth(): React.JSX.Element {
   const { child } = useChild();
-  const childId = child?.id ?? null;
-  const { weights, loading, error, deleteWeight, reload } = useWeights(childId);
+  const { weights, loading, error, deleteWeight, reload } = useWeights();
 
   const [modal, setModal] = useState<ModalState>({ open: false });
   const {
@@ -106,7 +96,7 @@ export function Growth(): React.JSX.Element {
     );
   }
 
-  const { id: activeChildId, name, sex, dateOfBirth } = child;
+  const { name, sex, dateOfBirth } = child;
 
   // ---- Loading state ---------------------------------------------------
   if (loading) {
@@ -172,10 +162,8 @@ export function Growth(): React.JSX.Element {
 
   function handleFormClose(): void {
     setModal({ open: false });
-    // Re-sync this screen's useWeights instance with the source of truth.
-    // WeightForm has its own internal useWeights instance for mutations,
-    // so we call reload() here to pull in any changes it made.
-    reload();
+    // No reload() needed: WeightForm mutations now update the shared WeightsProvider
+    // state directly, so Growth's weights list is already up to date on close.
   }
 
   // ---- Empty state -------------------------------------------------------
@@ -262,7 +250,6 @@ export function Growth(): React.JSX.Element {
               {/* Import is most useful here — a parent migrating from Nara Baby
                   starts with no weights, so the entry point must exist in the empty state. */}
               <ImportNaraBaby
-                childId={activeChildId}
                 dateOfBirth={dateOfBirth}
                 existingEntries={weights}
                 onImported={reload}
@@ -280,7 +267,6 @@ export function Growth(): React.JSX.Element {
           {/* Actions: Add weight + Import — kept at the top for quick access */}
           <div className="flex flex-wrap items-center justify-end gap-[var(--space-3)]">
             <ImportNaraBaby
-              childId={activeChildId}
               dateOfBirth={dateOfBirth}
               existingEntries={weights}
               onImported={reload}
@@ -384,7 +370,6 @@ export function Growth(): React.JSX.Element {
       <WeightForm
         open={modal.open}
         onClose={handleFormClose}
-        childId={activeChildId}
         dateOfBirth={dateOfBirth}
         entry={modal.entry}
       />

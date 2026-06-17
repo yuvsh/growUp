@@ -97,7 +97,7 @@ describe('createSupabaseRepository', () => {
         data: CHILD_ROW,
         error: null,
       });
-      const repo = createSupabaseRepository(() => client);
+      const repo = createSupabaseRepository(async () => client);
 
       const result = await repo.children.create({
         ownerId: 'owner-1',
@@ -135,7 +135,7 @@ describe('createSupabaseRepository', () => {
         data: null,
         error: { message: 'permission denied' },
       });
-      const repo = createSupabaseRepository(() => client);
+      const repo = createSupabaseRepository(async () => client);
 
       await expect(
         repo.children.create({
@@ -154,7 +154,7 @@ describe('createSupabaseRepository', () => {
         data: [CHILD_ROW],
         error: null,
       });
-      const repo = createSupabaseRepository(() => client);
+      const repo = createSupabaseRepository(async () => client);
 
       const result = await repo.children.list('owner-1');
 
@@ -178,7 +178,7 @@ describe('createSupabaseRepository', () => {
         data: null,
         error: { message: 'network error' },
       });
-      const repo = createSupabaseRepository(() => client);
+      const repo = createSupabaseRepository(async () => client);
 
       await expect(repo.children.list('owner-1')).rejects.toBeInstanceOf(
         RepositoryWriteError,
@@ -192,7 +192,7 @@ describe('createSupabaseRepository', () => {
         data: WEIGHT_ROW,
         error: null,
       });
-      const repo = createSupabaseRepository(() => client);
+      const repo = createSupabaseRepository(async () => client);
 
       const result = await repo.weights.create({
         ownerId: 'owner-1',
@@ -216,7 +216,7 @@ describe('createSupabaseRepository', () => {
         data: [WEIGHT_ROW],
         error: null,
       });
-      const repo = createSupabaseRepository(() => client);
+      const repo = createSupabaseRepository(async () => client);
 
       const result = await repo.weights.listByChild('child-1');
 
@@ -232,7 +232,7 @@ describe('createSupabaseRepository', () => {
         data: FEEDING_ROW,
         error: null,
       });
-      const repo = createSupabaseRepository(() => client);
+      const repo = createSupabaseRepository(async () => client);
 
       const result = await repo.feedingConfig.upsert({
         ownerId: 'owner-1',
@@ -254,7 +254,7 @@ describe('createSupabaseRepository', () => {
 
     it('getByChild returns null when no row exists', async () => {
       const { client } = createBuilder({ data: null, error: null });
-      const repo = createSupabaseRepository(() => client);
+      const repo = createSupabaseRepository(async () => client);
 
       const result = await repo.feedingConfig.getByChild('child-1');
       expect(result).toBeNull();
@@ -265,7 +265,7 @@ describe('createSupabaseRepository', () => {
         data: null,
         error: { message: 'conflict' },
       });
-      const repo = createSupabaseRepository(() => client);
+      const repo = createSupabaseRepository(async () => client);
 
       await expect(
         repo.feedingConfig.upsert({

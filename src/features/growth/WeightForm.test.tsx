@@ -29,19 +29,17 @@ const defaultUseWeightsResult = {
   reload: vi.fn(),
 }
 
-vi.mock('../../lib/hooks/useWeights', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../lib/hooks/useWeights')>()
-  return {
-    ...actual,
-    useWeights: (): typeof defaultUseWeightsResult => defaultUseWeightsResult,
-  }
-})
+// WeightForm now imports useWeights from WeightsProvider; mock that module.
+// isWeightDateValid is still imported from useWeights — import the actual
+// implementation so form validation continues to work in these tests.
+vi.mock('../../lib/hooks/WeightsProvider', () => ({
+  useWeights: (): typeof defaultUseWeightsResult => defaultUseWeightsResult,
+}))
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const CHILD_ID = 'child-1'
 // Use a recent DOB so that today's date falls within the 0-24 month window
 const DATE_OF_BIRTH = '2025-10-01'
 const TODAY = new Date().toISOString().split('T')[0] as string
@@ -51,7 +49,7 @@ const VALID_MEASURED_DATE = '2025-12-01'
 
 const EXISTING_ENTRY: WeightEntry = {
   id: 'entry-1',
-  childId: CHILD_ID,
+  childId: 'child-1',
   ownerId: 'user-1',
   dateMeasured: VALID_MEASURED_DATE,
   weightGrams: 7500,
@@ -76,7 +74,6 @@ function renderForm(
     <WeightForm
       open={options.open ?? true}
       onClose={onClose}
-      childId={CHILD_ID}
       dateOfBirth={DATE_OF_BIRTH}
       entry={options.entry}
     />,

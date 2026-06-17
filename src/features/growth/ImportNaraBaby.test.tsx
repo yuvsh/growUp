@@ -24,13 +24,12 @@ const defaultUseWeightsResult = {
   reload: vi.fn(),
 };
 
-vi.mock('../../lib/hooks/useWeights', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../lib/hooks/useWeights')>();
-  return {
-    ...actual,
-    useWeights: (): typeof defaultUseWeightsResult => defaultUseWeightsResult,
-  };
-});
+// ImportNaraBaby imports useWeights from WeightsProvider; mock that module.
+// isWeightDateValid is still imported from useWeights — the actual implementation
+// is preserved so date-validation logic continues to work in these tests.
+vi.mock('../../lib/hooks/WeightsProvider', () => ({
+  useWeights: (): typeof defaultUseWeightsResult => defaultUseWeightsResult,
+}));
 
 // ---------------------------------------------------------------------------
 // Fixture CSV helpers
@@ -57,13 +56,12 @@ function makeCsvFile(...rows: string[]): File {
 // Constants
 // ---------------------------------------------------------------------------
 
-const CHILD_ID = 'child-test-1';
 // DOB that puts valid dates around 2026
 const DATE_OF_BIRTH = '2025-12-01';
 
 const EXISTING_ENTRY: WeightEntry = {
   id: 'existing-entry-1',
-  childId: CHILD_ID,
+  childId: 'child-test-1',
   ownerId: 'user-1',
   dateMeasured: '2026-01-15',
   weightGrams: 4000,
@@ -85,7 +83,6 @@ function renderComponent(
 ): void {
   render(
     <ImportNaraBaby
-      childId={CHILD_ID}
       dateOfBirth={DATE_OF_BIRTH}
       existingEntries={options.existingEntries ?? []}
       onImported={onImported}
@@ -102,7 +99,7 @@ describe('ImportNaraBaby', () => {
     vi.clearAllMocks();
     mockAddWeight.mockResolvedValue({
       id: 'new-entry',
-      childId: CHILD_ID,
+      childId: 'child-test-1',
       ownerId: 'user-1',
       dateMeasured: '2026-02-01',
       weightGrams: 5000,

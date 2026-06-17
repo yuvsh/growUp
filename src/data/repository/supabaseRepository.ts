@@ -194,13 +194,14 @@ function failWrite(message: string, cause: unknown): never {
 // ---------------------------------------------------------------------------
 
 export function createSupabaseRepository(
-  getClient: () => SupabaseClient = getSupabaseClient,
+  getClient: () => Promise<SupabaseClient> = getSupabaseClient,
 ): Repository {
   // ---- Children ------------------------------------------------------------
 
   const children = {
     async list(ownerId: string): Promise<Child[]> {
-      const { data, error } = await getClient()
+      const client = await getClient();
+      const { data, error } = await client
         .from(TABLES.children)
         .select('*')
         .eq('owner_id', ownerId);
@@ -210,7 +211,8 @@ export function createSupabaseRepository(
     },
 
     async get(id: string): Promise<Child | null> {
-      const { data, error } = await getClient()
+      const client = await getClient();
+      const { data, error } = await client
         .from(TABLES.children)
         .select('*')
         .eq('id', id)
@@ -221,7 +223,8 @@ export function createSupabaseRepository(
     },
 
     async create(input: CreateChildInput): Promise<Child> {
-      const { data, error } = await getClient()
+      const client = await getClient();
+      const { data, error } = await client
         .from(TABLES.children)
         .insert(childInsertRow(input, newId()))
         .select()
@@ -231,7 +234,8 @@ export function createSupabaseRepository(
     },
 
     async update(id: string, patch: UpdateChildInput): Promise<Child> {
-      const { data, error } = await getClient()
+      const client = await getClient();
+      const { data, error } = await client
         .from(TABLES.children)
         .update(childPatchRow(patch))
         .eq('id', id)
@@ -242,7 +246,8 @@ export function createSupabaseRepository(
     },
 
     async delete(id: string): Promise<void> {
-      const { error } = await getClient()
+      const client = await getClient();
+      const { error } = await client
         .from(TABLES.children)
         .delete()
         .eq('id', id);
@@ -254,7 +259,8 @@ export function createSupabaseRepository(
 
   const weights = {
     async listByChild(childId: string): Promise<WeightEntry[]> {
-      const { data, error } = await getClient()
+      const client = await getClient();
+      const { data, error } = await client
         .from(TABLES.weights)
         .select('*')
         .eq('child_id', childId);
@@ -264,7 +270,8 @@ export function createSupabaseRepository(
     },
 
     async create(input: CreateWeightEntryInput): Promise<WeightEntry> {
-      const { data, error } = await getClient()
+      const client = await getClient();
+      const { data, error } = await client
         .from(TABLES.weights)
         .insert(weightInsertRow(input, newId()))
         .select()
@@ -274,7 +281,8 @@ export function createSupabaseRepository(
     },
 
     async update(id: string, patch: UpdateWeightEntryInput): Promise<WeightEntry> {
-      const { data, error } = await getClient()
+      const client = await getClient();
+      const { data, error } = await client
         .from(TABLES.weights)
         .update(weightPatchRow(patch))
         .eq('id', id)
@@ -285,7 +293,8 @@ export function createSupabaseRepository(
     },
 
     async delete(id: string): Promise<void> {
-      const { error } = await getClient()
+      const client = await getClient();
+      const { error } = await client
         .from(TABLES.weights)
         .delete()
         .eq('id', id);
@@ -297,7 +306,8 @@ export function createSupabaseRepository(
 
   const feedingConfig = {
     async getByChild(childId: string): Promise<FeedingConfig | null> {
-      const { data, error } = await getClient()
+      const client = await getClient();
+      const { data, error } = await client
         .from(TABLES.feedingConfig)
         .select('*')
         .eq('child_id', childId)
@@ -308,7 +318,8 @@ export function createSupabaseRepository(
     },
 
     async upsert(input: CreateFeedingConfigInput): Promise<FeedingConfig> {
-      const { data, error } = await getClient()
+      const client = await getClient();
+      const { data, error } = await client
         .from(TABLES.feedingConfig)
         .upsert(feedingConfigUpsertRow(input, newId()), {
           onConflict: FEEDING_CONFIG_CONFLICT_TARGET,
