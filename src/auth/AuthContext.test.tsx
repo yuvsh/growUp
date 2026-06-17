@@ -32,7 +32,8 @@ const mockSupabaseClient = {
 let supabaseConfigured = false;
 
 vi.mock('../lib/supabase/client.js', () => ({
-  getSupabaseClient: () => mockSupabaseClient,
+  getSupabaseClient: (): Promise<typeof mockSupabaseClient> =>
+    Promise.resolve(mockSupabaseClient),
   isSupabaseConfigured: () => supabaseConfigured,
 }));
 
@@ -122,6 +123,19 @@ describe('useAuth', () => {
 
   it('does not call Supabase in local mode with no env', () => {
     renderHook(() => useAuth(), { wrapper });
+    expect(mockGetSession).not.toHaveBeenCalled();
+    expect(mockOnAuthStateChange).not.toHaveBeenCalled();
+  });
+
+  it('does not call Supabase in local mode even when env IS configured', async () => {
+    // Regression guard for the configured≠chose-remote bug: a local user on a
+    // deploy where the Supabase env vars are present must still make ZERO
+    // Supabase calls (and therefore never load the client library).
+    supabaseConfigured = true;
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => expect(result.current.status).toBe('local'));
+
     expect(mockGetSession).not.toHaveBeenCalled();
     expect(mockOnAuthStateChange).not.toHaveBeenCalled();
   });

@@ -123,7 +123,7 @@ describe('migrateLocalToRemote', () => {
     const result = await migrateLocalToRemote({
       localOwnerId: LOCAL_OWNER,
       remoteOwnerId: REMOTE_OWNER,
-      getClient: () => client,
+      getClient: async () => client,
     });
 
     expect(result.uploaded).toEqual({ children: 1, weights: 1, feedingConfigs: 1 });
@@ -172,7 +172,7 @@ describe('migrateLocalToRemote', () => {
     await migrateLocalToRemote({
       localOwnerId: LOCAL_OWNER,
       remoteOwnerId: REMOTE_OWNER,
-      getClient: () => client,
+      getClient: async () => client,
     });
 
     const feedingCall = calls.find((c) => c.table === 'feeding_configs');
@@ -185,12 +185,12 @@ describe('migrateLocalToRemote', () => {
     await migrateLocalToRemote({
       localOwnerId: LOCAL_OWNER,
       remoteOwnerId: REMOTE_OWNER,
-      getClient: () => client,
+      getClient: async () => client,
     });
     await migrateLocalToRemote({
       localOwnerId: LOCAL_OWNER,
       remoteOwnerId: REMOTE_OWNER,
-      getClient: () => client,
+      getClient: async () => client,
     });
 
     expect(calls).toHaveLength(6);
@@ -207,7 +207,7 @@ describe('migrateLocalToRemote', () => {
     const result = await migrateLocalToRemote({
       localOwnerId: LOCAL_OWNER,
       remoteOwnerId: REMOTE_OWNER,
-      getClient: () => client,
+      getClient: async () => client,
     });
 
     expect(result.uploaded.children).toBe(1);
@@ -228,7 +228,7 @@ describe('migrateLocalToRemote', () => {
     const result = await migrateLocalToRemote({
       localOwnerId: LOCAL_OWNER,
       remoteOwnerId: REMOTE_OWNER,
-      getClient: () => throwingClient,
+      getClient: async () => throwingClient,
     });
 
     expect(result.uploaded).toEqual({ children: 0, weights: 0, feedingConfigs: 0 });
@@ -241,7 +241,7 @@ describe('migrateLocalToRemote', () => {
     await migrateLocalToRemote({
       localOwnerId: LOCAL_OWNER,
       remoteOwnerId: REMOTE_OWNER,
-      getClient: () => client,
+      getClient: async () => client,
     });
     // Only read methods are mocked/available; the routine never references delete.
     expect(mockListChildren).toHaveBeenCalledWith(LOCAL_OWNER);

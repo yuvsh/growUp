@@ -54,7 +54,7 @@ export interface MigrateLocalToRemoteArgs {
   /** Supabase auth uid — becomes `owner_id` on every uploaded row. */
   remoteOwnerId: string;
   /** Injectable for tests; defaults to the shared lazy client. */
-  getClient?: () => SupabaseClient;
+  getClient?: () => Promise<SupabaseClient>;
 }
 
 // ---------------------------------------------------------------------------
@@ -190,7 +190,7 @@ export async function migrateLocalToRemote(
 ): Promise<MigrationResult> {
   const { localOwnerId, remoteOwnerId } = args;
   const getClient = args.getClient ?? getSupabaseClient;
-  const client = getClient();
+  const client = await getClient();
 
   const uploaded: MigrationCounts = { children: 0, weights: 0, feedingConfigs: 0 };
   const errors: string[] = [];

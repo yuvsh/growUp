@@ -104,54 +104,85 @@ export function AuthProvider({ children }: AuthProviderProps): React.JSX.Element
   const [anonUserId] = useState<string>(() => getOrCreateAnonUserId());
   const [mode, setModeState] = useState<StorageMode>(() => getStorageMode());
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
-  // Only remote mode with a configured client needs to resolve a session; for
-  // local-only users there is nothing async to wait for.
-  const [loading, setLoading] = useState<boolean>(() => isSupabaseConfigured());
+  // Only REMOTE mode with a configured client needs to resolve a session; for
+  // local-only users there is nothing async to wait for, so loading starts
+  // false. Note: configured ≠ chose-remote — a local user on a deploy that has
+  // the env vars set must still skip all Supabase work.
+  const [loading, setLoading] = useState<boolean>(
+    () => getStorageMode() === 'remote' && isSupabaseConfigured(),
+  );
 
   // ---- Supabase session: read once + subscribe to changes ------------------
-  // Guarded so local-only users (no env) never touch the Supabase client.
+  // Gated on REMOTE mode (not just env presence) so local-only users never
+  // load the Supabase library or touch the client. Keyed on `mode` so toggling
+  // into remote starts session resolution and toggling back to local stops it.
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) {
+    if (mode !== 'remote' || !isSupabaseConfigured()) {
       setLoading(false);
       return;
     }
 
-    let cancelled = false;
-    const client = getSupabaseClient();
+    // Entering remote (e.g. via setMode) must show loading until the session
+    // resolves, even though the initial state may have started false.
+    setLoading(true);
 
-    client.auth
-      .getSession()
-      .then(({ data }) => {
+    let cancelled = false;
+    let subscription: { unsubscribe: () => void } | null = null;
+
+    void getSupabaseClient()
+      .then((client) => {
+        // A mode change / unmount mid-flight must not wire up a stale client.
         if (cancelled) return;
-        setSupabaseUser(data.session?.user ?? null);
-        setLoading(false);
+
+        client.auth
+          .getSession()
+          .then(({ data }) => {
+            if (cancelled) return;
+            setSupabaseUser(data.session?.user ?? null);
+            setLoading(false);
+          })
+          .catch(() => {
+            // Failing to resolve the session must not crash the app; treat as
+            // signed-out and stop loading so remote mode prompts for sign-in.
+            if (cancelled) return;
+            setSupabaseUser(null);
+            setLoading(false);
+          });
+
+        const result = client.auth.onAuthStateChange((_event, session) => {
+          setSupabaseUser(session?.user ?? null);
+          setLoading(false);
+        });
+        subscription = result.data.subscription;
+
+        // If cleanup already ran while the client was resolving, unsubscribe
+        // immediately so we don't leak the listener.
+        if (cancelled) {
+          subscription.unsubscribe();
+          subscription = null;
+        }
       })
       .catch(() => {
-        // Failing to resolve the session must not crash the app; treat as
-        // signed-out and stop loading so remote mode prompts for sign-in.
+        // Loading the client failed; treat as signed-out and stop loading.
         if (cancelled) return;
         setSupabaseUser(null);
         setLoading(false);
       });
 
-    const {
-      data: { subscription },
-    } = client.auth.onAuthStateChange((_event, session) => {
-      setSupabaseUser(session?.user ?? null);
-      setLoading(false);
-    });
-
     return () => {
       cancelled = true;
-      subscription.unsubscribe();
+      if (subscription !== null) {
+        subscription.unsubscribe();
+        subscription = null;
+      }
     };
-  }, []);
+  }, [mode]);
 
   // ---- Actions -------------------------------------------------------------
 
   const signInWithGoogle = useCallback(async (): Promise<void> => {
-    const { error } = await getSupabaseClient().auth.signInWithOAuth({
+    const { error } = await (await getSupabaseClient()).auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}${AUTH_CALLBACK_PATH}`,
@@ -163,7 +194,7 @@ export function AuthProvider({ children }: AuthProviderProps): React.JSX.Element
   }, []);
 
   const signOut = useCallback(async (): Promise<void> => {
-    const { error } = await getSupabaseClient().auth.signOut();
+    const { error } = await (await getSupabaseClient()).auth.signOut();
     if (error !== null) {
       throw error;
     }

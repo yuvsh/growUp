@@ -39,7 +39,7 @@ export function AuthCallback(): React.JSX.Element {
 
     // Touching getSession() ensures the client has parsed the URL session.
     getSupabaseClient()
-      .auth.getSession()
+      .then((client) => client.auth.getSession())
       .then(goHome)
       .catch(goHome);
 
