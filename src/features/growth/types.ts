@@ -82,13 +82,22 @@ export interface ProjectionResult {
 // Insights
 // ---------------------------------------------------------------------------
 
+/**
+ * Interpolation values for an insight's body copy. Each key is a `{token}`
+ * placeholder name in the corresponding `growth.insights.<kind>.body` string.
+ */
+export interface InsightBodyParams {
+  /** g/day threshold shown in the slow-velocity insight body. */
+  threshold: number;
+}
+
 /** An actionable or informational growth insight card. */
 export interface Insight {
   /** Stable identifier — used as React key and for deduplication. */
   id: string;
   /**
-   * Machine-readable kind so the UI can render a matching icon/colour without
-   * string-matching the title.
+   * Machine-readable kind so the UI can render a matching icon/colour, and to
+   * resolve `title`/`body` copy from `growth.insights.<kind>.*` via `t()`.
    */
   kind: 'weight-loss' | 'slow-velocity' | 'percentile-drop';
   /**
@@ -97,10 +106,11 @@ export interface Insight {
    *   - `caution` — warrants attention; pairs with the amber alert colour
    */
   severity: 'info' | 'caution';
-  /** Short heading shown in the card. Already localised (comes from `t()`). */
-  title: string;
-  /** One-or-two-sentence body text. Already localised. */
-  body: string;
+  /**
+   * Values to interpolate into the body copy's `{token}` placeholders.
+   * Undefined when the body has no placeholders.
+   */
+  bodyParams?: InsightBodyParams;
 }
 
 // ---------------------------------------------------------------------------

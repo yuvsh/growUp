@@ -7,6 +7,7 @@
 import type { WeightEntry, Sex } from '../../types';
 import { weightToZResult } from '../../lib/who';
 import { ageFromDob } from '../../lib/growth/age';
+import { formatWeightKgPrecision3, formatPercentileOrdinal } from '../../lib/growth/format';
 import { t } from '../../i18n/t';
 
 interface WeightRowProps {
@@ -15,33 +16,6 @@ interface WeightRowProps {
   dateOfBirth: string;
   onEdit: (entry: WeightEntry) => void;
   onDelete: (entry: WeightEntry) => void;
-}
-
-/** Format weight in grams to kg string with 3 significant figures. */
-function formatWeightKg(grams: number): string {
-  const kg = grams / 1000;
-  // 3 sig figs: e.g. 3450g → "3.45 kg", 12300g → "12.3 kg"
-  return `${parseFloat(kg.toPrecision(3))} kg`;
-}
-
-/** Format a percentile number as "42nd", "3rd", "11th" etc. */
-function formatPercentile(percentile: number): string {
-  const rounded = Math.round(percentile);
-  const mod10 = rounded % 10;
-  const mod100 = rounded % 100;
-  let suffix: string;
-  if (mod100 >= 11 && mod100 <= 13) {
-    suffix = 'th';
-  } else if (mod10 === 1) {
-    suffix = 'st';
-  } else if (mod10 === 2) {
-    suffix = 'nd';
-  } else if (mod10 === 3) {
-    suffix = 'rd';
-  } else {
-    suffix = 'th';
-  }
-  return `${rounded}${suffix}`;
 }
 
 /** Format a date ISO string (YYYY-MM-DD) to a readable form, e.g. "Jun 10, 2026". */
@@ -101,7 +75,7 @@ export function WeightRow({
             'text-[var(--color-foreground)]',
           ].join(' ')}
         >
-          {formatWeightKg(entry.weightGrams)}
+          {formatWeightKgPrecision3(entry.weightGrams)}
         </span>
         <div className="flex items-center gap-[var(--space-3)]">
           <span
@@ -110,7 +84,7 @@ export function WeightRow({
               'text-[var(--color-text-muted)]',
             ].join(' ')}
           >
-            {t('growth.percentile')}: {formatPercentile(percentile)}
+            {t('growth.percentile')}: {formatPercentileOrdinal(percentile)}
           </span>
           <span
             className={[

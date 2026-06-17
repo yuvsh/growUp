@@ -9,6 +9,7 @@ import {
   ML_PER_KG_MIN,
   ML_PER_KG_MAX,
 } from '../constants/feeding.js';
+import { normaliseError } from './mutationError.js';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -125,8 +126,7 @@ export function useFeeding(childId: string | null): UseFeedingResult {
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        const normalised = err instanceof Error ? err : new Error(String(err));
-        setError(normalised);
+        setError(normaliseError(err));
         setLoading(false);
         // Do not re-throw: load failures must not propagate to the render cycle.
       });
@@ -180,7 +180,7 @@ export function useFeeding(childId: string | null): UseFeedingResult {
         setConfig(saved);
         return saved;
       } catch (err: unknown) {
-        const normalised = err instanceof Error ? err : new Error(String(err));
+        const normalised = normaliseError(err);
         setError(normalised);
         throw normalised;
       }

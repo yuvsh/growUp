@@ -14,12 +14,10 @@
 import type { Sex } from '../../types';
 import type { Lms } from './lms';
 import { getWeightForAgeTable } from '../../data/who';
+import { MAX_AGE_DAYS } from '../growth/age';
 
 /** Minimum supported age in days (birth). */
 const MIN_AGE_DAYS = 0;
-
-/** Maximum supported age in days (24 months). */
-const MAX_AGE_DAYS = 730;
 
 /**
  * Return the interpolated (or exact) LMS parameters for a given sex and age.

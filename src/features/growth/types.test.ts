@@ -107,10 +107,18 @@ describe('interface structural checks (compile-time)', () => {
       id: 'weight-loss-1',
       kind: 'weight-loss',
       severity: 'caution',
-      title: 'Weight loss detected',
-      body: 'Baby lost weight between the last two visits.',
     };
     expect(insight.kind).toBe('weight-loss');
     expect(insight.severity).toBe('caution');
+  });
+
+  it('Insight accepts an optional bodyParams bag for copy interpolation', () => {
+    const insight: Insight = {
+      id: 'slow-velocity-1',
+      kind: 'slow-velocity',
+      severity: 'caution',
+      bodyParams: { threshold: 10 },
+    };
+    expect(insight.bodyParams).toEqual({ threshold: 10 });
   });
 });

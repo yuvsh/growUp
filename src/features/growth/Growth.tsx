@@ -23,6 +23,7 @@ import { useChild } from '../../lib/hooks/useChild';
 import { useWeights } from '../../lib/hooks/useWeights';
 import { weightToZResult } from '../../lib/who';
 import { ageFromDob, formatAge } from '../../lib/growth/age';
+import { formatGramsAsKg, formatPercentileTh } from '../../lib/growth/format';
 import { Button } from '../../components/ui/button';
 import { Skeleton } from '../../components/ui/skeleton';
 import { EmptyState } from '../../components/ui/empty-state';
@@ -58,17 +59,25 @@ interface ModalState {
 
 /** Format weight in grams as a human-readable kg string (e.g. 6350 → "6.350 kg"). */
 function formatWeightKg(grams: number): string {
-  return `${(grams / 1000).toFixed(3)} kg`;
-}
-
-/** Format a percentile number as a one-decimal string (e.g. 24.7 → "24.7th"). */
-function formatPercentile(p: number): string {
-  return `${p.toFixed(1)}th`;
+  return `${formatGramsAsKg(grams, 3)} kg`;
 }
 
 /** Format a z-score to two decimal places with sign (e.g. -1.23). */
 function formatZ(z: number): string {
   return z.toFixed(2);
+}
+
+/**
+ * Returns the entry with the most recent `dateMeasured`, matching the
+ * tie-break of a stable descending sort by date: among equal dates, the
+ * entry that appears earliest in `entries` wins. Avoids sorting the full
+ * array just to read its first element.
+ */
+function findLatestEntry(entries: WeightEntry[]): WeightEntry | undefined {
+  return entries.reduce<WeightEntry | undefined>((latest, entry) => {
+    if (latest === undefined) return entry;
+    return entry.dateMeasured.localeCompare(latest.dateMeasured) > 0 ? entry : latest;
+  }, undefined);
 }
 
 // ---------------------------------------------------------------------------
@@ -130,10 +139,7 @@ export function Growth(): React.JSX.Element {
   }
 
   // ---- Derived values (only computed when we have entries) ---------------
-  const sortedEntries = [...weights].sort((a, b) =>
-    b.dateMeasured.localeCompare(a.dateMeasured),
-  );
-  const latestEntry = sortedEntries[0];
+  const latestEntry = findLatestEntry(weights);
 
   const ageBreakdown = ageFromDob(dateOfBirth);
   const ageLabel = formatAge(ageBreakdown);
@@ -224,7 +230,7 @@ export function Growth(): React.JSX.Element {
               <div className="flex gap-[var(--space-2)] text-[length:var(--text-sm)] text-[var(--color-text-muted)]">
                 <span>
                   <span className="font-medium">{t('growth.percentile')}:</span>{' '}
-                  {formatPercentile(latestZResult.percentile)}
+                  {formatPercentileTh(latestZResult.percentile, 1)}
                 </span>
                 <span aria-hidden="true">·</span>
                 <span>

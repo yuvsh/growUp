@@ -13,7 +13,7 @@
  * No inline styles for layout; all layout via Tailwind classes.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   LineChart,
   Line,
@@ -28,14 +28,14 @@ import type { TooltipProps } from 'recharts';
 import { deriveMeasurements } from '../../lib/growth/measurements';
 import type { DerivedMeasurement } from '../../lib/growth/measurements';
 import { t } from '../../i18n/t';
+import { DAYS_PER_MONTH } from '../../lib/growth/age';
 import type { WeightEntry, Sex } from '../../types';
+import { GrowthFallbackTable } from './GrowthFallbackTable';
+import type { GrowthFallbackRow } from './GrowthFallbackTable';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
-/** Days-per-month divisor matching the WeightChart age-axis convention. */
-const DAYS_PER_MONTH = 30.4375;
 
 /** Stroke width for the baby's z-score line. */
 const LINE_STROKE_WIDTH = 2.5;
@@ -114,26 +114,59 @@ function ZScoreTooltip({ active, payload }: CustomTooltipProps): React.JSX.Eleme
 // ---------------------------------------------------------------------------
 
 export function ZScoreChart({ entries, sex, dateOfBirth }: ZScoreChartProps): React.JSX.Element | null {
+  // Depends only on entries/sex/dateOfBirth — the only props this component
+  // receives — so it never recomputes on a render triggered by something else.
+  const measurements = useMemo(
+    () => deriveMeasurements(entries, sex, dateOfBirth),
+    [entries, sex, dateOfBirth],
+  );
+
+  // Chart data stays chronological ascending (oldest → newest) for the line plot.
+  const chartData: ZChartPoint[] = useMemo(
+    () =>
+      measurements.map((m) => ({
+        ageMonths: parseFloat((m.ageDays / DAYS_PER_MONTH).toFixed(2)),
+        z: m.z,
+        measurement: m,
+      })),
+    [measurements],
+  );
+
+  // Y-domain: keep clinical reference lines always visible. Single-pass reduce
+  // avoids `Math.min(...spread)` blowing the call stack / re-scanning the
+  // array twice on large measurement lists.
+  const { yMin, yMax } = useMemo(() => {
+    let dataMin = Infinity;
+    let dataMax = -Infinity;
+    for (const m of measurements) {
+      if (m.z < dataMin) dataMin = m.z;
+      if (m.z > dataMax) dataMax = m.z;
+    }
+    return {
+      yMin: Math.min(dataMin, -3) - 0.5,
+      yMax: Math.max(dataMax, 0) + 0.5,
+    };
+  }, [measurements]);
+
+  // Table lists newest → oldest; chartData/measurements keep ascending order.
+  const fallbackRows: GrowthFallbackRow[] = useMemo(
+    () =>
+      [...measurements].reverse().map((m) => ({
+        key: m.entry.id,
+        dateMeasured: m.dateMeasured,
+        ageLabel: m.ageLabel,
+        weightKgLabel: `${(m.weightGrams / 1000).toFixed(3)} kg`,
+        zScoreLabel: m.z.toFixed(2),
+        percentileLabel: `${m.percentile.toFixed(1)}%`,
+      })),
+    [measurements],
+  );
+
   // Growth already gates on entries.length > 0, but guard defensively.
+  // Placed after the hooks above so hook call order stays stable across renders.
   if (entries.length === 0) {
     return null;
   }
-
-  const measurements = deriveMeasurements(entries, sex, dateOfBirth);
-
-  // Chart data stays chronological ascending (oldest → newest) for the line plot.
-  const chartData: ZChartPoint[] = measurements.map((m) => ({
-    ageMonths: parseFloat((m.ageDays / DAYS_PER_MONTH).toFixed(2)),
-    z: m.z,
-    measurement: m,
-  }));
-
-  // Y-domain: keep clinical reference lines always visible.
-  const zValues = measurements.map((m) => m.z);
-  const dataMin = Math.min(...zValues);
-  const dataMax = Math.max(...zValues);
-  const yMin = Math.min(dataMin, -3) - 0.5;
-  const yMax = Math.max(dataMax, 0) + 0.5;
 
   const chartTitle = t('growth.zChart.title');
   const yAxisLabel = t('growth.zChart.yAxis');
@@ -252,78 +285,7 @@ export function ZScoreChart({ entries, sex, dateOfBirth }: ZScoreChartProps): Re
       {/* Accessible fallback table — Priority-1 a11y: chart must never be   */}
       {/* the sole source of the data (MASTER.md).                           */}
       {/* ------------------------------------------------------------------ */}
-      <div className="mt-[var(--space-4)]">
-        <h3
-          className="text-[length:var(--text-sm)] font-semibold text-[var(--color-foreground)] mb-[var(--space-2)]"
-        >
-          {fallbackHeading}
-        </h3>
-
-        <table
-          className="w-full text-[length:var(--text-sm)] border-collapse"
-          aria-label={fallbackHeading}
-        >
-          <thead>
-            <tr className="border-b border-[var(--color-border)]">
-              <th
-                scope="col"
-                className="text-start py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-text-muted)] font-medium"
-              >
-                {t('growth.zChart.colDate')}
-              </th>
-              <th
-                scope="col"
-                className="text-start py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-text-muted)] font-medium"
-              >
-                {t('growth.zChart.colAge')}
-              </th>
-              <th
-                scope="col"
-                className="text-start py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-text-muted)] font-medium"
-              >
-                {t('growth.zChart.colWeight')}
-              </th>
-              <th
-                scope="col"
-                className="text-start py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-text-muted)] font-medium"
-              >
-                {t('growth.zChart.colZScore')}
-              </th>
-              <th
-                scope="col"
-                className="text-start py-[var(--space-2)] text-[var(--color-text-muted)] font-medium"
-              >
-                {t('growth.zChart.colPercentile')}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {/* Table lists newest → oldest; chartData keeps ascending order. */}
-            {[...measurements].reverse().map((m) => (
-              <tr
-                key={m.entry.id}
-                className="border-b border-[var(--color-border)] last:border-0"
-              >
-                <td className="py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-foreground)]">
-                  {m.dateMeasured}
-                </td>
-                <td className="py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-foreground)]">
-                  {m.ageLabel}
-                </td>
-                <td className="py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-foreground)]">
-                  {(m.weightGrams / 1000).toFixed(3)} kg
-                </td>
-                <td className="py-[var(--space-2)] pe-[var(--space-3)] text-[var(--color-foreground)]">
-                  {m.z.toFixed(2)}
-                </td>
-                <td className="py-[var(--space-2)] text-[var(--color-foreground)]">
-                  {m.percentile.toFixed(1)}%
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <GrowthFallbackTable heading={fallbackHeading} rows={fallbackRows} />
     </section>
   );
 }

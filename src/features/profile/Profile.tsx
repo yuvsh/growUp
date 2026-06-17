@@ -130,15 +130,6 @@ export function Profile(): React.JSX.Element {
 
       {/* ---- Storage & privacy (PRD SYNC-5/6) ------------------------------ */}
       <StoragePrivacy />
-
-      {/*
-       * ---- FUTURE PLACEHOLDER: child switcher -----------------------------
-       * When multi-child support is implemented, add the child switcher UI here.
-       * Suggested slot:
-       *   <ChildSwitcher />
-       * -----------------------------------------------------------------------
-       */}
-
     </main>
   );
 }

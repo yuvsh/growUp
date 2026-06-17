@@ -3,7 +3,9 @@
  * weight entry history.
  *
  * Each rule has a stable `id` so the UI can use it as a React key. Rules are
- * pure functions of the input: no I/O, no side effects.
+ * pure functions of the input: no I/O, no side effects. Insights carry only
+ * `kind`/`severity`/`bodyParams` — the UI resolves title/body copy from
+ * `growth.insights.<kind>.*` via `t()`, never hardcoded strings here.
  *
  * EXTENSION POINT: add new insight rules here.
  */
@@ -59,8 +61,6 @@ export function computeInsights(
         id: 'weight-loss',
         kind: 'weight-loss',
         severity: 'caution',
-        title: 'Weight loss detected',
-        body: 'Your baby lost weight between two consecutive measurements. This can be normal shortly after birth but warrants attention if it continues.',
       });
       break; // one card per kind is enough
     }
@@ -75,8 +75,7 @@ export function computeInsights(
         id: 'slow-velocity',
         kind: 'slow-velocity',
         severity: 'caution',
-        title: 'Slow weight gain',
-        body: `Weight gain is below ${SLOW_VELOCITY_THRESHOLD_G_PER_DAY} g/day. Speak with your healthcare provider if this continues.`,
+        bodyParams: { threshold: SLOW_VELOCITY_THRESHOLD_G_PER_DAY },
       });
     }
   }
@@ -96,8 +95,6 @@ export function computeInsights(
         id: 'percentile-drop',
         kind: 'percentile-drop',
         severity: 'caution',
-        title: 'Percentile dropping',
-        body: 'Your baby\'s weight percentile has fallen between measurements. A single drop may be normal, but a sustained trend is worth discussing with your doctor.',
       });
       break; // one card per kind is enough
     }

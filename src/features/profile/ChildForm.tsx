@@ -149,7 +149,6 @@ export function ChildForm(): React.JSX.Element {
         </h1>
 
         {/* ---- Form ---- */}
-        { }
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate
@@ -269,7 +268,6 @@ export function ChildForm(): React.JSX.Element {
               variant="destructive"
               loading={isDeleting}
               disabled={isDeleting}
-               
               onClick={handleDeleteConfirm}
             >
               {t('common.delete')}

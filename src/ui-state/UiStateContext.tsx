@@ -110,11 +110,14 @@ interface UiStateProviderProps {
 
 export function UiStateProvider({ children }: UiStateProviderProps): React.JSX.Element {
   // Lazy initializer: reads from localStorage once on mount (avoids a rerender).
+  // Both fields are derived from a single read/parse so we never hit
+  // localStorage or JSON.parse twice for the same mount.
+  const [initialState] = useState<PersistedUiState>(readFromStorage);
   const [growthChartView, setGrowthChartView] = useState<GrowthChartView>(
-    () => readFromStorage().growthChartView,
+    initialState.growthChartView,
   );
   const [growthChartRange, setGrowthChartRange] = useState<ChartRange>(
-    () => readFromStorage().growthChartRange,
+    initialState.growthChartRange,
   );
 
   // Persist to localStorage whenever either value changes.

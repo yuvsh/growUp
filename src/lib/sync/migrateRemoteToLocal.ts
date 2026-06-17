@@ -20,6 +20,7 @@ import { supabaseRepository } from '../../data/repository/index.js';
 import type { Repository } from '../../data/repository/types.js';
 import type { Child, WeightEntry, FeedingConfig } from '../../types/index.js';
 import type { MigrationCounts, MigrationResult } from './migrateLocalToRemote.js';
+import { describeError } from './describeError.js';
 
 // ---------------------------------------------------------------------------
 // localStorage keys — must match createLocalStorageRepository's KEYS.
@@ -54,16 +55,6 @@ export interface MigrateRemoteToLocalArgs {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/** Extracts a short, log-safe message from an unknown thrown error. */
-function describeError(label: string, cause: unknown): string {
-  if (cause instanceof Error) return `${label}: ${cause.message}`;
-  if (typeof cause === 'object' && cause !== null && 'message' in cause) {
-    const message = (cause as { message: unknown }).message;
-    if (typeof message === 'string') return `${label}: ${message}`;
-  }
-  return label;
-}
 
 /** Parses a JSON array from the store; returns `[]` for missing/invalid data. */
 function readArray<TEntity>(store: LocalWriteStore, key: string): TEntity[] {
