@@ -231,3 +231,130 @@ On save, recompute percentile/z and update chart/history. Edit mode prefills + o
   uses logical positioning for RTL. `aria-current="page"` on active.
 - **MedicalDisclaimer:** persistent footer + onboarding block. Plain, warm wording: informational/tracking
   only, not medical advice, FTT/IUGR require professional care. Non-dismissable. Text ≥4.5:1.
+
+---
+
+# Clinic Mode (feature: docs/PRD-clinic-mode.md, docs/HLD-clinic-mode.md)
+
+> A point-of-care surface **outside** `PrimaryLayout` — no bottom tabs, no profile guard, **nothing
+> saved**. Audience is a clinician reading the result aloud to a parent. Design page:
+> `design-system/pages/clinic.md`. Three linear screens.
+
+**Route map (added)**
+| Route | Screen | Guard |
+|---|---|---|
+| `/clinic` | Clinic Entry / notice | none (outside PrimaryLayout) |
+| `/clinic/read` | Clinic Form (DOB + sex + birth weight + 1–2 current weights) | none |
+| `/clinic/result` | Clinic Result | none (redirect to `/clinic/read` if no in-memory input) |
+
+State for all three lives in a single in-memory `useClinicRead` hook — refresh/close clears everything.
+
+---
+
+## Clinic Entry
+**Route:** `/clinic`
+**Philosophy:** Apple — one notice, one CTA.
+**Design page:** `design-system/pages/clinic.md`
+**Layout:** Full-height centered column. Heading "Clinic Mode", one line on what it does ("Enter one or
+two weights for an instant WHO growth read"), a quiet **notice card**: *nothing is saved* and *this
+supports, not replaces, clinical judgment*. Single primary CTA "Start a read". A small "Back to growUp"
+link returns to the parent app.
+**Components from ui/:** Button, Card, MedicalDisclaimer.
+**Screen components to create:** `src/features/clinic/ClinicEntry.tsx`.
+**Data flow:** none — static screen; CTA navigates to `/clinic/read`.
+
+**States**
+| Element | Empty | Loading | Error |
+|---|---|---|---|
+| Screen | This is a static intro — no data | none (no async) | n/a |
+
+**A11y**
+- [ ] "Start a read" → Button, focusable, aria-label "Start a read", ≥44×44px.
+- [ ] Notice is readable text ≥4.5:1, not a tooltip; not dismissable.
+- [ ] "Back to growUp" is a real link, keyboard reachable.
+
+**Responsive**
+- Mobile 375px: single column, CTA full width.
+- Desktop 1280px: centered card max-w ~480px.
+
+**Animation:** CTA press scale(0.98); respect `prefers-reduced-motion`.
+
+---
+
+## Clinic Form
+**Route:** `/clinic/read`
+**Philosophy:** Google accent — efficient data entry, fastest path to a result.
+**Design page:** `design-system/pages/clinic.md`
+**Layout:** Title "Enter the baby's details". Form sections: **Date of birth** (date, not future),
+**Sex** (reuse `SexSelector`, with one-line "why we ask" — WHO standards differ), **Birth weight**
+(grams/kg input, required — helper "The baby's weight at birth; anchors the read at day 0"), then
+**Current weight #1** (grams/kg input + measurement date defaulting to today). A quiet "+ Add a second
+weight" reveals **Current weight #2** (with remove). Helper under the second weight: "Refines recent
+daily gain." Primary "Get read" (disabled until DOB + sex + birth weight + current weight #1 valid),
+secondary "Clear". Inline validation under each field.
+**Components from ui/:** Input, Button, Card. Reuse weight-row pattern from `WeightForm`; `SexSelector`.
+**Screen components to create:** `src/features/clinic/ClinicForm.tsx`, `useClinicRead.ts`,
+`clinicSchema.ts`, `types.ts`.
+**Data flow:** writes form values into `useClinicRead` (in-memory); on submit derives `ClinicRead` via
+`lib/who` + `lib/growth` and navigates to `/clinic/result`. No repository, no localStorage.
+
+**States**
+| Element | Empty | Loading | Error |
+|---|---|---|---|
+| Form | Opens with DOB, sex, birth weight, one current-weight row visible, cursor in first field | none (sync compute) | Inline per field: "Enter a date of birth", "Choose a sex", "Enter the birth weight", "Enter a weight" |
+| DOB | — | — | "Date of birth can't be in the future" / "Age is outside the WHO 0–24 month range" |
+| Current weight dates | — | — | "The weight date must be on or after the date of birth" / "The second weight's date must be on or after the first" |
+| Weight value | — | — | Soft warn on implausible value (incl. birth weight): "That looks unusual — please confirm" |
+
+**A11y**
+- [ ] Every input has a visible `<label>` (not placeholder-only); error below the field.
+- [ ] `SexSelector` is keyboard operable (arrow keys / Tab), conveys selection by more than color.
+- [ ] "Get read" announces disabled state; not enabled until min valid inputs.
+- [ ] "+ Add a second weight" / "Remove" → buttons with aria-labels, ≥44×44px.
+
+**Responsive**
+- Mobile 375px: single column, inputs full width, "Get read" full width sticky-ish at bottom.
+- Desktop 1280px: centered card max-w ~520px.
+
+**Animation:** second-weight reveal slide/fade `--duration-normal` `--ease-out`; respect reduced-motion.
+
+---
+
+## Clinic Result
+**Route:** `/clinic/result`
+**Philosophy:** Google accent — the number and the chart are the product.
+**Design page:** `design-system/pages/clinic.md`
+**Layout:** Top **PercentileZScoreCallout**: big current percentile (`--text-display`) + z-score, a
+"Born at the Xth percentile" line (from `birthZResult`), and one plain-language sentence to read aloud.
+Below: **WeightChart** (reused) plotting the WHO curves with the birth point (day 0) + 1–2 current
+points. Then **TrendCard** (direction + g/day from birth) — always present, since birth weight anchors
+the trend. Then the **catch-up target** via reused **ProjectionCard** (catch-up amber when below the
+line, maintenance green when on/above). A quiet **disclaimer note**. Footer: "New read" (resets and
+returns to a blank form).
+**Components from ui/:** Card, Badge, EmptyState, Button, MedicalDisclaimer. Reuse `WeightChart`,
+`ProjectionCard` from `features/growth`.
+**Screen components to create:** `src/features/clinic/ClinicResult.tsx`,
+`src/features/clinic/PercentileZScoreCallout.tsx`, `src/features/clinic/TrendCard.tsx`.
+**Data flow:** reads derived `ClinicRead` from `useClinicRead`; if absent (e.g. direct nav/refresh),
+redirect to `/clinic/read`. Builds ephemeral `WeightEntry[]` (synthetic ids, never persisted) to feed
+the reused chart/projection components.
+
+**States**
+| Element | Empty | Loading | Error |
+|---|---|---|---|
+| Result | If no in-memory input → redirect to `/clinic/read` | none (sync) | "We couldn't compute a result from these values — please review the inputs" → back to form |
+| TrendCard | Always present (birth + ≥1 current weight = trend); a second current weight refines recent velocity | — | — |
+| Catch-up | On/above line → maintenance framing (green), not a fabricated deficit | — | — |
+
+**A11y**
+- [ ] Percentile/z-score conveyed as text, not color alone; amber/green paired with icon + words.
+- [ ] "New read" → Button, aria-label "Start a new read", ≥44×44px.
+- [ ] Chart has an accessible text summary nearby (the callout sentence) for screen readers.
+- [ ] Disclaimer text ≥4.5:1, not dismissable.
+
+**Responsive**
+- Mobile 375px: single column — callout, chart, cards stacked; chart full width.
+- Desktop 1280px: centered max-w ~640px; chart wider, cards in a single column for read-aloud clarity.
+
+**Animation:** number/cards fade-in `--duration-normal`; no celebratory motion (clinical context);
+respect reduced-motion.
